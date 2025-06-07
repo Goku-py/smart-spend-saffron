@@ -7,18 +7,65 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import Layout from "@/components/Layout";
 import AddExpenseModal from "@/components/AddExpenseModal";
 import { sampleExpenses, categories } from "../data/mockData";
+import { useToast } from "@/hooks/use-toast";
 
 const Expenses = () => {
   const [showAddExpense, setShowAddExpense] = useState(false);
   const [filter, setFilter] = useState('all');
   const [categoryFilter, setCategoryFilter] = useState('all');
   const [searchTerm, setSearchTerm] = useState('');
+  const [expenses, setExpenses] = useState(sampleExpenses);
+  const { toast } = useToast();
 
-  const filteredExpenses = sampleExpenses.filter(expense => {
+  const handleAddExpense = (expenseData: any) => {
+    const newExpense = {
+      id: Date.now(),
+      ...expenseData,
+      date: expenseData.date || new Date().toISOString().split('T')[0]
+    };
+    setExpenses(prev => [newExpense, ...prev]);
+    toast({
+      title: "Expense Added Successfully! ✅",
+      description: `₹${expenseData.amount} for ${expenseData.description}`,
+    });
+  };
+
+  const handleEditExpense = (id: number) => {
+    toast({
+      title: "Edit Feature",
+      description: "Edit functionality will be implemented soon",
+    });
+  };
+
+  const handleDeleteExpense = (id: number) => {
+    setExpenses(prev => prev.filter(expense => expense.id !== id));
+    toast({
+      title: "Expense Deleted",
+      description: "The expense has been removed",
+      variant: "destructive",
+    });
+  };
+
+  const filteredExpenses = expenses.filter(expense => {
     const matchesCategory = categoryFilter === 'all' || expense.category === categoryFilter;
     const matchesSearch = expense.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          expense.merchant.toLowerCase().includes(searchTerm.toLowerCase());
-    return matchesCategory && matchesSearch;
+    
+    let matchesTimeFilter = true;
+    const expenseDate = new Date(expense.date);
+    const today = new Date();
+    
+    if (filter === 'today') {
+      matchesTimeFilter = expenseDate.toDateString() === today.toDateString();
+    } else if (filter === 'week') {
+      const weekAgo = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000);
+      matchesTimeFilter = expenseDate >= weekAgo;
+    } else if (filter === 'month') {
+      matchesTimeFilter = expenseDate.getMonth() === today.getMonth() && 
+                         expenseDate.getFullYear() === today.getFullYear();
+    }
+    
+    return matchesCategory && matchesSearch && matchesTimeFilter;
   });
 
   const totalExpenses = filteredExpenses.reduce((sum, expense) => sum + expense.amount, 0);
@@ -53,7 +100,9 @@ const Expenses = () => {
                 <div className="text-sm text-gray-600">Transactions</div>
               </div>
               <div className="text-center">
-                <div className="text-2xl font-bold text-orange-600">₹{Math.round(totalExpenses / filteredExpenses.length)}</div>
+                <div className="text-2xl font-bold text-orange-600">
+                  ₹{filteredExpenses.length > 0 ? Math.round(totalExpenses / filteredExpenses.length) : 0}
+                </div>
                 <div className="text-sm text-gray-600">Avg. Amount</div>
               </div>
               <div className="text-center">
@@ -143,8 +192,19 @@ const Expenses = () => {
                       -₹{expense.amount.toLocaleString('en-IN')}
                     </div>
                     <div className="flex space-x-2 mt-1">
-                      <Button variant="outline" size="sm">Edit</Button>
-                      <Button variant="outline" size="sm" className="text-red-600 hover:text-red-700">
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={() => handleEditExpense(expense.id)}
+                      >
+                        Edit
+                      </Button>
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        className="text-red-600 hover:text-red-700"
+                        onClick={() => handleDeleteExpense(expense.id)}
+                      >
                         Delete
                       </Button>
                     </div>
@@ -158,7 +218,8 @@ const Expenses = () => {
 
       <AddExpenseModal 
         open={showAddExpense} 
-        onClose={() => setShowAddExpense(false)} 
+        onClose={() => setShowAddExpense(false)}
+        onExpenseAdded={handleAddExpense}
       />
     </Layout>
   );

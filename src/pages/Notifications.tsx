@@ -6,10 +6,63 @@ import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import Layout from "@/components/Layout";
 import { notifications } from "../data/mockData";
+import { useNotifications } from "../contexts/NotificationContext";
+import { useToast } from "@/hooks/use-toast";
+import { useState } from "react";
 
 const Notifications = () => {
+  const { markAsRead, dismissNotification } = useNotifications();
+  const { toast } = useToast();
+  const [notificationSettings, setNotificationSettings] = useState({
+    budgetAlerts: true,
+    billReminders: true,
+    aiInsights: true,
+    weeklyReports: false
+  });
+
   const urgentNotifications = notifications.filter(n => n.urgent);
   const regularNotifications = notifications.filter(n => !n.urgent);
+
+  const handleDismissNotification = (id: string) => {
+    dismissNotification(id);
+    toast({
+      title: "Notification Dismissed",
+      description: "The notification has been removed",
+    });
+  };
+
+  const handleMarkAsRead = (id: string) => {
+    markAsRead(id);
+    toast({
+      title: "Marked as Read",
+      description: "The notification has been marked as read",
+    });
+  };
+
+  const handleSettingChange = (setting: string, value: boolean) => {
+    setNotificationSettings(prev => ({
+      ...prev,
+      [setting]: value
+    }));
+    toast({
+      title: "Settings Updated",
+      description: `${setting} ${value ? 'enabled' : 'disabled'}`,
+    });
+  };
+
+  const handleReviewAction = () => {
+    toast({
+      title: "Review Action",
+      description: "Redirecting to budget review...",
+    });
+  };
+
+  const handleSetBudgetAction = () => {
+    toast({
+      title: "Set Budget",
+      description: "Redirecting to budget creation...",
+    });
+  };
 
   return (
     <Layout>
@@ -29,19 +82,35 @@ const Notifications = () => {
             <div className="space-y-4">
               <div className="flex items-center justify-between">
                 <Label htmlFor="budget-alerts">Budget Alerts</Label>
-                <Switch id="budget-alerts" defaultChecked />
+                <Switch 
+                  id="budget-alerts" 
+                  checked={notificationSettings.budgetAlerts}
+                  onCheckedChange={(checked) => handleSettingChange('budgetAlerts', checked)}
+                />
               </div>
               <div className="flex items-center justify-between">
                 <Label htmlFor="bill-reminders">Bill Reminders</Label>
-                <Switch id="bill-reminders" defaultChecked />
+                <Switch 
+                  id="bill-reminders" 
+                  checked={notificationSettings.billReminders}
+                  onCheckedChange={(checked) => handleSettingChange('billReminders', checked)}
+                />
               </div>
               <div className="flex items-center justify-between">
                 <Label htmlFor="ai-insights">AI Insights</Label>
-                <Switch id="ai-insights" defaultChecked />
+                <Switch 
+                  id="ai-insights" 
+                  checked={notificationSettings.aiInsights}
+                  onCheckedChange={(checked) => handleSettingChange('aiInsights', checked)}
+                />
               </div>
               <div className="flex items-center justify-between">
                 <Label htmlFor="weekly-summary">Weekly Summary</Label>
-                <Switch id="weekly-summary" />
+                <Switch 
+                  id="weekly-summary" 
+                  checked={notificationSettings.weeklyReports}
+                  onCheckedChange={(checked) => handleSettingChange('weeklyReports', checked)}
+                />
               </div>
             </div>
           </CardContent>
@@ -74,7 +143,11 @@ const Notifications = () => {
                         <p className="text-sm text-gray-600 mt-1">{notification.message}</p>
                         <p className="text-xs text-gray-500 mt-2">{notification.time}</p>
                       </div>
-                      <Button variant="outline" size="sm">
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={() => handleDismissNotification(notification.id.toString())}
+                      >
                         Dismiss
                       </Button>
                     </div>
@@ -111,7 +184,11 @@ const Notifications = () => {
                         <p className="text-xs text-gray-500 mt-2">{notification.time}</p>
                       </div>
                     </div>
-                    <Button variant="ghost" size="sm">
+                    <Button 
+                      variant="ghost" 
+                      size="sm"
+                      onClick={() => handleDismissNotification(notification.id.toString())}
+                    >
                       ✕
                     </Button>
                   </div>
@@ -136,7 +213,11 @@ const Notifications = () => {
                       Your food spending has increased by 23% this month
                     </p>
                   </div>
-                  <Button variant="outline" size="sm">
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={handleReviewAction}
+                  >
                     Review
                   </Button>
                 </div>
@@ -150,7 +231,11 @@ const Notifications = () => {
                       Diwali is 45 days away. Start planning your festival expenses.
                     </p>
                   </div>
-                  <Button variant="outline" size="sm">
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={handleSetBudgetAction}
+                  >
                     Set Budget
                   </Button>
                 </div>
