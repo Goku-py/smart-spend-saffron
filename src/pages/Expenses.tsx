@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -23,7 +22,7 @@ const Expenses = () => {
 
   const handleAddExpense = (expenseData: any) => {
     const newExpense = {
-      id: Date.now(),
+      id: Date.now().toString(), // Convert to string to match interface
       ...expenseData,
       date: expenseData.date || new Date().toISOString().split('T')[0]
     };
@@ -34,7 +33,7 @@ const Expenses = () => {
     });
   };
 
-  const handleEditExpense = (id: number) => {
+  const handleEditExpense = (id: string) => { // Change parameter type to string
     console.log('Editing expense with ID:', id);
     toast({
       title: t('editFeature'),
@@ -42,9 +41,9 @@ const Expenses = () => {
     });
   };
 
-  const handleDeleteExpense = (id: number) => {
+  const handleDeleteExpense = (id: string) => { // Change parameter type to string
     console.log('Deleting expense with ID:', id);
-    setExpenses(prev => prev.filter(expense => expense.id !== id));
+    setExpenses(prev => prev.filter(expense => expense.id !== id)); // This comparison now works correctly
     toast({
       title: t('expenseDeleted'),
       description: t('expenseHasBeenRemoved'),
