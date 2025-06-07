@@ -38,19 +38,19 @@ const Dashboard = () => {
 
   const aiInsights = [
     {
-      type: "warning",
+      type: "warning" as const,
       title: "Food Budget Alert",
       message: "You've exceeded your food budget by ₹200 this month. Consider cooking at home to save ₹2,000.",
       icon: "⚠️"
     },
     {
-      type: "tip",
+      type: "tip" as const,
       title: "Festival Savings",
       message: "Diwali is in 45 days! Start saving ₹333/day to reach your ₹15,000 festival budget.",
       icon: "💡"
     },
     {
-      type: "achievement",
+      type: "achievement" as const,
       title: "Great Progress!",
       message: "You've saved ₹800 on groceries by shopping at local kirana stores.",
       icon: "🎉"
