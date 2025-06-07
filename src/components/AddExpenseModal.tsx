@@ -12,9 +12,10 @@ import { categories, paymentMethods } from "../data/mockData";
 interface AddExpenseModalProps {
   open: boolean;
   onClose: () => void;
+  onExpenseAdded?: (expenseData: any) => void;
 }
 
-const AddExpenseModal = ({ open, onClose }: AddExpenseModalProps) => {
+const AddExpenseModal = ({ open, onClose, onExpenseAdded }: AddExpenseModalProps) => {
   const [amount, setAmount] = useState('');
   const [category, setCategory] = useState('');
   const [description, setDescription] = useState('');
@@ -31,6 +32,20 @@ const AddExpenseModal = ({ open, onClose }: AddExpenseModalProps) => {
         variant: "destructive",
       });
       return;
+    }
+
+    const expenseData = {
+      amount: parseFloat(amount),
+      category,
+      description,
+      merchant,
+      paymentMethod,
+      date: new Date().toISOString().split('T')[0]
+    };
+
+    // Call the onExpenseAdded callback if provided
+    if (onExpenseAdded) {
+      onExpenseAdded(expenseData);
     }
 
     toast({
