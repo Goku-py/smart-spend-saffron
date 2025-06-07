@@ -8,6 +8,8 @@ import Layout from "@/components/Layout";
 import AddExpenseModal from "@/components/AddExpenseModal";
 import { sampleExpenses, categories } from "../data/mockData";
 import { useToast } from "@/hooks/use-toast";
+import { useCurrency } from "@/contexts/CurrencyContext";
+import { useTranslation } from "@/contexts/TranslationContext";
 
 const Expenses = () => {
   const [showAddExpense, setShowAddExpense] = useState(false);
@@ -16,6 +18,8 @@ const Expenses = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [expenses, setExpenses] = useState(sampleExpenses);
   const { toast } = useToast();
+  const { formatCurrency } = useCurrency();
+  const { t } = useTranslation();
 
   const handleAddExpense = (expenseData: any) => {
     const newExpense = {
@@ -25,23 +29,25 @@ const Expenses = () => {
     };
     setExpenses(prev => [newExpense, ...prev]);
     toast({
-      title: "Expense Added Successfully! ✅",
-      description: `₹${expenseData.amount} for ${expenseData.description}`,
+      title: t('expenseAddedSuccessfully'),
+      description: `${formatCurrency(expenseData.amount)} for ${expenseData.description}`,
     });
   };
 
   const handleEditExpense = (id: number) => {
+    console.log('Editing expense with ID:', id);
     toast({
-      title: "Edit Feature",
-      description: "Edit functionality will be implemented soon",
+      title: t('editFeature'),
+      description: t('editFunctionalityWillBeImplemented'),
     });
   };
 
   const handleDeleteExpense = (id: number) => {
+    console.log('Deleting expense with ID:', id);
     setExpenses(prev => prev.filter(expense => expense.id !== id));
     toast({
-      title: "Expense Deleted",
-      description: "The expense has been removed",
+      title: t('expenseDeleted'),
+      description: t('expenseHasBeenRemoved'),
       variant: "destructive",
     });
   };
@@ -76,14 +82,14 @@ const Expenses = () => {
         {/* Header */}
         <div className="flex justify-between items-center">
           <div>
-            <h1 className="text-2xl font-bold text-gray-800">Expenses</h1>
-            <p className="text-gray-600">Track and manage your transactions</p>
+            <h1 className="text-2xl font-bold text-gray-800">{t('expenses')}</h1>
+            <p className="text-gray-600">{t('trackAndManageTransactions')}</p>
           </div>
           <Button 
             onClick={() => setShowAddExpense(true)}
             className="bg-gradient-to-r from-green-500 to-green-600 text-white"
           >
-            Add Expense
+            {t('addExpense')}
           </Button>
         </div>
 
@@ -92,22 +98,22 @@ const Expenses = () => {
           <CardContent className="p-6">
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               <div className="text-center">
-                <div className="text-2xl font-bold text-blue-600">₹{totalExpenses.toLocaleString('en-IN')}</div>
-                <div className="text-sm text-gray-600">Total Expenses</div>
+                <div className="text-2xl font-bold text-blue-600">{formatCurrency(totalExpenses)}</div>
+                <div className="text-sm text-gray-600">{t('totalExpenses')}</div>
               </div>
               <div className="text-center">
                 <div className="text-2xl font-bold text-green-600">{filteredExpenses.length}</div>
-                <div className="text-sm text-gray-600">Transactions</div>
+                <div className="text-sm text-gray-600">{t('transactions')}</div>
               </div>
               <div className="text-center">
                 <div className="text-2xl font-bold text-orange-600">
-                  ₹{filteredExpenses.length > 0 ? Math.round(totalExpenses / filteredExpenses.length) : 0}
+                  {formatCurrency(filteredExpenses.length > 0 ? Math.round(totalExpenses / filteredExpenses.length) : 0)}
                 </div>
-                <div className="text-sm text-gray-600">Avg. Amount</div>
+                <div className="text-sm text-gray-600">{t('avgAmount')}</div>
               </div>
               <div className="text-center">
                 <div className="text-2xl font-bold text-purple-600">7</div>
-                <div className="text-sm text-gray-600">Categories</div>
+                <div className="text-sm text-gray-600">{t('categories')}</div>
               </div>
             </div>
           </CardContent>
@@ -116,13 +122,13 @@ const Expenses = () => {
         {/* Filters */}
         <Card>
           <CardHeader>
-            <CardTitle>Filter Expenses</CardTitle>
+            <CardTitle>{t('filterExpenses')}</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div>
                 <Input
-                  placeholder="Search expenses..."
+                  placeholder={t('searchExpenses')}
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                 />
@@ -130,10 +136,10 @@ const Expenses = () => {
               <div>
                 <Select value={categoryFilter} onValueChange={setCategoryFilter}>
                   <SelectTrigger>
-                    <SelectValue placeholder="All Categories" />
+                    <SelectValue placeholder={t('allCategories')} />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="all">All Categories</SelectItem>
+                    <SelectItem value="all">{t('allCategories')}</SelectItem>
                     {categories.map((category) => (
                       <SelectItem key={category} value={category}>
                         {category}
@@ -145,13 +151,13 @@ const Expenses = () => {
               <div>
                 <Select value={filter} onValueChange={setFilter}>
                   <SelectTrigger>
-                    <SelectValue placeholder="Time Period" />
+                    <SelectValue placeholder={t('timePeriod')} />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="all">All Time</SelectItem>
-                    <SelectItem value="today">Today</SelectItem>
-                    <SelectItem value="week">This Week</SelectItem>
-                    <SelectItem value="month">This Month</SelectItem>
+                    <SelectItem value="all">{t('allTime')}</SelectItem>
+                    <SelectItem value="today">{t('today')}</SelectItem>
+                    <SelectItem value="week">{t('thisWeek')}</SelectItem>
+                    <SelectItem value="month">{t('thisMonth')}</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -162,7 +168,7 @@ const Expenses = () => {
         {/* Expenses List */}
         <Card>
           <CardHeader>
-            <CardTitle>Recent Transactions</CardTitle>
+            <CardTitle>{t('recentTransactions')}</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="space-y-3">
@@ -189,7 +195,7 @@ const Expenses = () => {
                   </div>
                   <div className="text-right">
                     <div className="text-lg font-medium text-red-600">
-                      -₹{expense.amount.toLocaleString('en-IN')}
+                      -{formatCurrency(expense.amount)}
                     </div>
                     <div className="flex space-x-2 mt-1">
                       <Button 
@@ -197,7 +203,7 @@ const Expenses = () => {
                         size="sm"
                         onClick={() => handleEditExpense(expense.id)}
                       >
-                        Edit
+                        {t('edit')}
                       </Button>
                       <Button 
                         variant="outline" 
@@ -205,7 +211,7 @@ const Expenses = () => {
                         className="text-red-600 hover:text-red-700"
                         onClick={() => handleDeleteExpense(expense.id)}
                       >
-                        Delete
+                        {t('delete')}
                       </Button>
                     </div>
                   </div>
