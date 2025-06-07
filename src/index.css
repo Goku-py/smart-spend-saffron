@@ -1,8 +1,11 @@
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-/* Definition of the design system. All colors, gradients, fonts, etc should be defined here. */
+/* Smart Spend - Indian Design System */
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
 
 @layer base {
   :root {
@@ -15,8 +18,8 @@
     --popover: 0 0% 100%;
     --popover-foreground: 222.2 84% 4.9%;
 
-    --primary: 222.2 47.4% 11.2%;
-    --primary-foreground: 210 40% 98%;
+    --primary: 24 95% 53%; /* Saffron #FF7518 */
+    --primary-foreground: 0 0% 100%;
 
     --secondary: 210 40% 96.1%;
     --secondary-foreground: 222.2 47.4% 11.2%;
@@ -24,71 +27,50 @@
     --muted: 210 40% 96.1%;
     --muted-foreground: 215.4 16.3% 46.9%;
 
-    --accent: 210 40% 96.1%;
-    --accent-foreground: 222.2 47.4% 11.2%;
+    --accent: 24 95% 53%; /* Saffron accent */
+    --accent-foreground: 0 0% 100%;
 
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 210 40% 98%;
 
     --border: 214.3 31.8% 91.4%;
     --input: 214.3 31.8% 91.4%;
-    --ring: 222.2 84% 4.9%;
+    --ring: 24 95% 53%;
 
-    --radius: 0.5rem;
+    --radius: 0.75rem;
 
-    --sidebar-background: 0 0% 98%;
-
-    --sidebar-foreground: 240 5.3% 26.1%;
-
-    --sidebar-primary: 240 5.9% 10%;
-
-    --sidebar-primary-foreground: 0 0% 98%;
-
-    --sidebar-accent: 240 4.8% 95.9%;
-
-    --sidebar-accent-foreground: 240 5.9% 10%;
-
-    --sidebar-border: 220 13% 91%;
-
-    --sidebar-ring: 217.2 91.2% 59.8%;
+    /* Indian themed colors */
+    --saffron: 24 95% 53%; /* #FF7518 */
+    --indian-green: 123 100% 25%; /* #138808 */
+    --indian-blue: 217 87% 33%; /* #1E40AF */
+    --gold: 45 100% 50%; /* #FFD700 */
+    
+    /* Festival gradients */
+    --diwali-gradient: linear-gradient(135deg, #FF7518 0%, #FFD700 50%, #FF7518 100%);
+    --prosperity-gradient: linear-gradient(135deg, #138808 0%, #32CD32 100%);
+    --savings-gradient: linear-gradient(135deg, #1E40AF 0%, #60A5FA 100%);
   }
 
   .dark {
     --background: 222.2 84% 4.9%;
     --foreground: 210 40% 98%;
-
     --card: 222.2 84% 4.9%;
     --card-foreground: 210 40% 98%;
-
     --popover: 222.2 84% 4.9%;
     --popover-foreground: 210 40% 98%;
-
-    --primary: 210 40% 98%;
-    --primary-foreground: 222.2 47.4% 11.2%;
-
+    --primary: 24 95% 53%;
+    --primary-foreground: 0 0% 100%;
     --secondary: 217.2 32.6% 17.5%;
     --secondary-foreground: 210 40% 98%;
-
     --muted: 217.2 32.6% 17.5%;
     --muted-foreground: 215 20.2% 65.1%;
-
     --accent: 217.2 32.6% 17.5%;
     --accent-foreground: 210 40% 98%;
-
     --destructive: 0 62.8% 30.6%;
     --destructive-foreground: 210 40% 98%;
-
     --border: 217.2 32.6% 17.5%;
     --input: 217.2 32.6% 17.5%;
     --ring: 212.7 26.8% 83.9%;
-    --sidebar-background: 240 5.9% 10%;
-    --sidebar-foreground: 240 4.8% 95.9%;
-    --sidebar-primary: 224.3 76.3% 48%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 240 3.7% 15.9%;
-    --sidebar-accent-foreground: 240 4.8% 95.9%;
-    --sidebar-border: 240 3.7% 15.9%;
-    --sidebar-ring: 217.2 91.2% 59.8%;
   }
 }
 
@@ -99,5 +81,66 @@
 
   body {
     @apply bg-background text-foreground;
+    font-family: 'Inter', sans-serif;
   }
+}
+
+@layer components {
+  /* Indian themed components */
+  .diwali-pattern {
+    background-image: radial-gradient(circle at 25% 25%, #FF7518 2px, transparent 2px),
+                      radial-gradient(circle at 75% 75%, #FFD700 1px, transparent 1px);
+    background-size: 20px 20px;
+  }
+  
+  .festive-border {
+    border-image: linear-gradient(90deg, #FF7518, #FFD700, #FF7518) 1;
+  }
+  
+  .currency-input {
+    @apply pl-8 relative;
+  }
+  
+  .currency-symbol {
+    @apply absolute left-3 top-1/2 transform -translate-y-1/2 text-saffron font-semibold;
+  }
+  
+  .progress-bar-indian {
+    background: linear-gradient(90deg, #138808 0%, #32CD32 100%);
+  }
+  
+  .card-indian {
+    @apply bg-white rounded-xl shadow-lg border border-orange-100;
+    background: linear-gradient(135deg, rgba(255, 117, 24, 0.02) 0%, rgba(255, 215, 0, 0.02) 100%);
+  }
+  
+  .btn-primary-indian {
+    background: var(--diwali-gradient);
+    @apply text-white font-semibold py-3 px-6 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300;
+  }
+  
+  .btn-secondary-indian {
+    background: var(--prosperity-gradient);
+    @apply text-white font-semibold py-2 px-4 rounded-lg shadow-md hover:shadow-lg transition-all duration-300;
+  }
+}
+
+/* Custom animations for Indian feel */
+@keyframes diya-glow {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.7; }
+}
+
+@keyframes rupee-bounce {
+  0%, 20%, 50%, 80%, 100% { transform: translateY(0); }
+  40% { transform: translateY(-10px); }
+  60% { transform: translateY(-5px); }
+}
+
+.diya-animation {
+  animation: diya-glow 2s ease-in-out infinite;
+}
+
+.rupee-animation {
+  animation: rupee-bounce 2s ease-in-out infinite;
 }
