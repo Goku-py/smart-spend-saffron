@@ -1,19 +1,24 @@
 
 import { useLocation, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { Home, Plus, Target, BarChart, Bell, User } from "lucide-react";
+import { useTranslation } from "../contexts/TranslationContext";
+import { useNotifications } from "../contexts/NotificationContext";
 
 const Sidebar = () => {
   const location = useLocation();
   const navigate = useNavigate();
+  const { t } = useTranslation();
+  const { unreadCount } = useNotifications();
 
   const navItems = [
-    { path: "/dashboard", label: "Dashboard", icon: Home },
-    { path: "/expenses", label: "Expenses", icon: Plus },
-    { path: "/budgets", label: "Budgets", icon: Target },
-    { path: "/reports", label: "Reports", icon: BarChart },
-    { path: "/notifications", label: "Notifications", icon: Bell },
-    { path: "/profile", label: "Profile", icon: User },
+    { path: "/dashboard", label: t('dashboard'), icon: Home },
+    { path: "/expenses", label: t('expenses'), icon: Plus },
+    { path: "/budgets", label: t('budgets'), icon: Target },
+    { path: "/reports", label: t('reports'), icon: BarChart },
+    { path: "/notifications", label: t('notifications'), icon: Bell, badge: unreadCount > 0 ? unreadCount : undefined },
+    { path: "/profile", label: t('profile'), icon: User },
   ];
 
   return (
@@ -40,7 +45,7 @@ const Sidebar = () => {
               key={item.path}
               variant={isActive ? "default" : "ghost"}
               onClick={() => navigate(item.path)}
-              className={`w-full justify-start ${
+              className={`w-full justify-start relative ${
                 isActive 
                   ? 'bg-gradient-to-r from-orange-500 to-yellow-500 text-white' 
                   : 'text-gray-600 hover:text-orange-600 hover:bg-orange-50'
@@ -48,6 +53,11 @@ const Sidebar = () => {
             >
               <Icon className="mr-3 h-4 w-4" />
               {item.label}
+              {item.badge && (
+                <Badge className="ml-auto bg-red-500 text-white text-xs">
+                  {item.badge}
+                </Badge>
+              )}
             </Button>
           );
         })}

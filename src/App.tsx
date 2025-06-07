@@ -5,6 +5,9 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { useState, createContext, useContext } from "react";
+import { CurrencyProvider } from "./contexts/CurrencyContext";
+import { TranslationProvider } from "./contexts/TranslationContext";
+import { NotificationProvider } from "./contexts/NotificationContext";
 import Home from "./pages/Home";
 import Auth from "./pages/Auth";
 import Dashboard from "./pages/Dashboard";
@@ -45,45 +48,53 @@ const App = () => {
   const logout = () => {
     setIsAuthenticated(false);
     setUser(null);
+    localStorage.removeItem('smartspend_currency');
+    localStorage.removeItem('smartspend_language');
   };
 
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
-        <AuthContext.Provider value={{ isAuthenticated, user, login, logout }}>
-          <Toaster />
-          <Sonner />
-          <BrowserRouter>
-            <Routes>
-              <Route path="/" element={<Home />} />
-              <Route path="/auth" element={<Auth />} />
-              <Route 
-                path="/dashboard" 
-                element={isAuthenticated ? <Dashboard /> : <Navigate to="/auth" />} 
-              />
-              <Route 
-                path="/expenses" 
-                element={isAuthenticated ? <Expenses /> : <Navigate to="/auth" />} 
-              />
-              <Route 
-                path="/budgets" 
-                element={isAuthenticated ? <Budgets /> : <Navigate to="/auth" />} 
-              />
-              <Route 
-                path="/reports" 
-                element={isAuthenticated ? <Reports /> : <Navigate to="/auth" />} 
-              />
-              <Route 
-                path="/notifications" 
-                element={isAuthenticated ? <Notifications /> : <Navigate to="/auth" />} 
-              />
-              <Route 
-                path="/profile" 
-                element={isAuthenticated ? <Profile /> : <Navigate to="/auth" />} 
-              />
-            </Routes>
-          </BrowserRouter>
-        </AuthContext.Provider>
+        <CurrencyProvider>
+          <TranslationProvider>
+            <NotificationProvider>
+              <AuthContext.Provider value={{ isAuthenticated, user, login, logout }}>
+                <Toaster />
+                <Sonner />
+                <BrowserRouter>
+                  <Routes>
+                    <Route path="/" element={<Home />} />
+                    <Route path="/auth" element={<Auth />} />
+                    <Route 
+                      path="/dashboard" 
+                      element={isAuthenticated ? <Dashboard /> : <Navigate to="/auth" />} 
+                    />
+                    <Route 
+                      path="/expenses" 
+                      element={isAuthenticated ? <Expenses /> : <Navigate to="/auth" />} 
+                    />
+                    <Route 
+                      path="/budgets" 
+                      element={isAuthenticated ? <Budgets /> : <Navigate to="/auth" />} 
+                    />
+                    <Route 
+                      path="/reports" 
+                      element={isAuthenticated ? <Reports /> : <Navigate to="/auth" />} 
+                    />
+                    <Route 
+                      path="/notifications" 
+                      element={isAuthenticated ? <Notifications /> : <Navigate to="/auth" />} 
+                    />
+                    <Route 
+                      path="/profile" 
+                      element={isAuthenticated ? <Profile /> : <Navigate to="/auth" />} 
+                    />
+                  </Routes>
+                </BrowserRouter>
+              </AuthContext.Provider>
+            </NotificationProvider>
+          </TranslationProvider>
+        </CurrencyProvider>
       </TooltipProvider>
     </QueryClientProvider>
   );

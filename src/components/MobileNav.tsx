@@ -1,19 +1,24 @@
 
 import { useLocation, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { Home, Plus, Target, BarChart, Bell, User } from "lucide-react";
+import { useTranslation } from "../contexts/TranslationContext";
+import { useNotifications } from "../contexts/NotificationContext";
 
 const MobileNav = () => {
   const location = useLocation();
   const navigate = useNavigate();
+  const { t } = useTranslation();
+  const { unreadCount } = useNotifications();
 
   const navItems = [
     { path: "/dashboard", label: "Home", icon: Home },
-    { path: "/expenses", label: "Expenses", icon: Plus },
-    { path: "/budgets", label: "Budgets", icon: Target },
-    { path: "/reports", label: "Reports", icon: BarChart },
-    { path: "/notifications", label: "Alerts", icon: Bell },
-    { path: "/profile", label: "Profile", icon: User },
+    { path: "/expenses", label: t('expenses'), icon: Plus },
+    { path: "/budgets", label: t('budgets'), icon: Target },
+    { path: "/reports", label: t('reports'), icon: BarChart },
+    { path: "/notifications", label: "Alerts", icon: Bell, badge: unreadCount > 0 ? unreadCount : undefined },
+    { path: "/profile", label: t('profile'), icon: User },
   ];
 
   return (
@@ -28,11 +33,18 @@ const MobileNav = () => {
               key={item.path}
               variant="ghost"
               onClick={() => navigate(item.path)}
-              className={`flex flex-col items-center py-2 px-3 ${
+              className={`flex flex-col items-center py-2 px-3 relative ${
                 isActive ? 'text-orange-600' : 'text-gray-600'
               }`}
             >
-              <Icon className="h-5 w-5 mb-1" />
+              <div className="relative">
+                <Icon className="h-5 w-5 mb-1" />
+                {item.badge && (
+                  <Badge className="absolute -top-2 -right-2 bg-red-500 text-white text-xs min-w-[16px] h-4 flex items-center justify-center p-0">
+                    {item.badge}
+                  </Badge>
+                )}
+              </div>
               <span className="text-xs">{item.label}</span>
             </Button>
           );
