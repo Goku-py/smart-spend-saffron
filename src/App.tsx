@@ -1,14 +1,11 @@
-
-import { Toaster } from "@/components/ui/toaster";
-import { Toaster as Sonner } from "@/components/ui/sonner";
-import { TooltipProvider } from "@/components/ui/tooltip";
+import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
-import { useState, createContext, useContext } from "react";
+import { Toaster } from "@/components/ui/toaster";
 import { CurrencyProvider } from "./contexts/CurrencyContext";
 import { TranslationProvider } from "./contexts/TranslationContext";
 import { NotificationProvider } from "./contexts/NotificationContext";
 import Home from "./pages/Home";
+import Landing from "./pages/Landing";
 import Auth from "./pages/Auth";
 import Dashboard from "./pages/Dashboard";
 import Expenses from "./pages/Expenses";
@@ -16,88 +13,152 @@ import Budgets from "./pages/Budgets";
 import Reports from "./pages/Reports";
 import Notifications from "./pages/Notifications";
 import Profile from "./pages/Profile";
+import Index from "./pages/Index";
+import NotFound from "./pages/NotFound";
+import { createContext, useContext, useEffect, useState } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import type { User, Session } from "@supabase/supabase-js";
+import './i18n';
 
 const queryClient = new QueryClient();
 
 interface AuthContextType {
-  isAuthenticated: boolean;
-  user: { name: string; phone: string; email: string } | null;
-  login: (userData: { name: string; phone: string; email: string }) => void;
-  logout: () => void;
+  user: User | null;
+  session: Session | null;
+  loading: boolean;
+  login: (email: string, password: string) => Promise<{ error: any }>;
+  logout: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const useAuth = () => {
   const context = useContext(AuthContext);
-  if (!context) {
+  if (context === undefined) {
     throw new Error('useAuth must be used within an AuthProvider');
   }
   return context;
 };
 
-const App = () => {
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [user, setUser] = useState<{ name: string; phone: string; email: string } | null>(null);
+const AuthProvider = ({ children }: { children: React.ReactNode }) => {
+  const [user, setUser] = useState<User | null>(null);
+  const [session, setSession] = useState<Session | null>(null);
+  const [loading, setLoading] = useState(true);
 
-  const login = (userData: { name: string; phone: string; email: string }) => {
-    setIsAuthenticated(true);
-    setUser(userData);
+  useEffect(() => {
+    // Set up auth state listener
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      (event, session) => {
+        setSession(session);
+        setUser(session?.user ?? null);
+        setLoading(false);
+      }
+    );
+
+    // Get initial session
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setSession(session);
+      setUser(session?.user ?? null);
+      setLoading(false);
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
+
+  const login = async (email: string, password: string) => {
+    const { error } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    });
+    return { error };
   };
 
-  const logout = () => {
-    setIsAuthenticated(false);
-    setUser(null);
-    localStorage.removeItem('smartspend_currency');
-    localStorage.removeItem('smartspend_language');
+  const logout = async () => {
+    await supabase.auth.signOut();
   };
 
+  const value = {
+    user,
+    session,
+    loading,
+    login,
+    logout,
+  };
+
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+};
+
+const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
+  const { user, loading } = useAuth();
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-600"></div>
+      </div>
+    );
+  }
+
+  if (!user) {
+    return <Navigate to="/auth" replace />;
+  }
+
+  return <>{children}</>;
+};
+
+function App() {
   return (
     <QueryClientProvider client={queryClient}>
-      <TooltipProvider>
+      <AuthProvider>
         <CurrencyProvider>
           <TranslationProvider>
             <NotificationProvider>
-              <AuthContext.Provider value={{ isAuthenticated, user, login, logout }}>
-                <Toaster />
-                <Sonner />
-                <BrowserRouter>
-                  <Routes>
-                    <Route path="/" element={<Home />} />
-                    <Route path="/auth" element={<Auth />} />
-                    <Route 
-                      path="/dashboard" 
-                      element={isAuthenticated ? <Dashboard /> : <Navigate to="/auth" />} 
-                    />
-                    <Route 
-                      path="/expenses" 
-                      element={isAuthenticated ? <Expenses /> : <Navigate to="/auth" />} 
-                    />
-                    <Route 
-                      path="/budgets" 
-                      element={isAuthenticated ? <Budgets /> : <Navigate to="/auth" />} 
-                    />
-                    <Route 
-                      path="/reports" 
-                      element={isAuthenticated ? <Reports /> : <Navigate to="/auth" />} 
-                    />
-                    <Route 
-                      path="/notifications" 
-                      element={isAuthenticated ? <Notifications /> : <Navigate to="/auth" />} 
-                    />
-                    <Route 
-                      path="/profile" 
-                      element={isAuthenticated ? <Profile /> : <Navigate to="/auth" />} 
-                    />
-                  </Routes>
-                </BrowserRouter>
-              </AuthContext.Provider>
+              <Router>
+                <Routes>
+                  <Route path="/" element={<Landing />} />
+                  <Route path="/home" element={<Home />} />
+                  <Route path="/auth" element={<Auth />} />
+                  <Route path="/dashboard" element={
+                    <ProtectedRoute>
+                      <Dashboard />
+                    </ProtectedRoute>
+                  } />
+                  <Route path="/expenses" element={
+                    <ProtectedRoute>
+                      <Expenses />
+                    </ProtectedRoute>
+                  } />
+                  <Route path="/budgets" element={
+                    <ProtectedRoute>
+                      <Budgets />
+                    </ProtectedRoute>
+                  } />
+                  <Route path="/reports" element={
+                    <ProtectedRoute>
+                      <Reports />
+                    </ProtectedRoute>
+                  } />
+                  <Route path="/notifications" element={
+                    <ProtectedRoute>
+                      <Notifications />
+                    </ProtectedRoute>
+                  } />
+                  <Route path="/profile" element={
+                    <ProtectedRoute>
+                      <Profile />
+                    </ProtectedRoute>
+                  } />
+                  <Route path="/index" element={<Index />} />
+                  <Route path="*" element={<NotFound />} />
+                </Routes>
+              </Router>
+              <Toaster />
             </NotificationProvider>
           </TranslationProvider>
         </CurrencyProvider>
-      </TooltipProvider>
+      </AuthProvider>
     </QueryClientProvider>
   );
-};
+}
 
 export default App;

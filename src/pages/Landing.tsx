@@ -1,269 +1,354 @@
 
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Badge } from "@/components/ui/badge";
+import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { 
+  Shield, 
+  Smartphone, 
+  TrendingUp, 
+  Users, 
+  Globe, 
+  CheckCircle,
+  Star,
+  ArrowRight,
+  Play
+} from "lucide-react";
 
-interface LandingProps {
-  onAuthenticate: () => void;
-}
-
-const Landing = ({ onAuthenticate }: LandingProps) => {
-  const [authMode, setAuthMode] = useState<'mobile' | 'email'>('mobile');
-  const [language, setLanguage] = useState('en');
-  const [mobileNumber, setMobileNumber] = useState('');
-  const [email, setEmail] = useState('');
-  const [otpSent, setOtpSent] = useState(false);
-  const [otp, setOtp] = useState('');
+const Landing = () => {
+  const navigate = useNavigate();
   const { toast } = useToast();
+  const [isLoading, setIsLoading] = useState(false);
 
-  const handleSendOTP = () => {
-    if (authMode === 'mobile' && mobileNumber.length === 10) {
-      setOtpSent(true);
-      toast({
-        title: "OTP भेजा गया!",
-        description: `OTP sent to +91 ${mobileNumber}`,
+  const handleGoogleSignIn = async () => {
+    setIsLoading(true);
+    try {
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo: `${window.location.origin}/dashboard`
+        }
       });
-    } else if (authMode === 'email' && email.includes('@')) {
-      setOtpSent(true);
+      
+      if (error) throw error;
+    } catch (error) {
       toast({
-        title: "OTP Sent!",
-        description: `Verification code sent to ${email}`,
-      });
-    }
-  };
-
-  const handleVerifyOTP = () => {
-    if (otp === '123456') {
-      toast({
-        title: "सफल लॉगिन!",
-        description: "Welcome to Smart Spend!",
-      });
-      onAuthenticate();
-    } else {
-      toast({
-        title: "गलत OTP",
-        description: "Please enter correct OTP",
+        title: "Sign In Error",
+        description: "Failed to sign in with Google. Please try again.",
         variant: "destructive",
       });
+    } finally {
+      setIsLoading(false);
     }
   };
 
-  const getLocalizedText = (key: string) => {
-    const texts: Record<string, Record<string, string>> = {
-      en: {
-        welcome: "Welcome to Smart Spend",
-        subtitle: "AI-Powered Budget Tracking for Smart Indians",
-        mobileAuth: "Mobile Number",
-        emailAuth: "Email Address",
-        sendOtp: "Send OTP",
-        verifyOtp: "Verify & Login",
-        enterOtp: "Enter OTP",
-        language: "Language",
-        whatsappLogin: "Login with WhatsApp",
-        features1: "Track UPI & Cash Expenses",
-        features2: "Festival Budget Planning",
-        features3: "AI-Powered Insights",
-        features4: "Multi-language Support"
-      },
-      hi: {
-        welcome: "स्मार्ट स्पेंड में आपका स्वागत है",
-        subtitle: "स्मार्ट भारतीयों के लिए AI-संचालित बजट ट्रैकिंग",
-        mobileAuth: "मोबाइल नंबर",
-        emailAuth: "ईमेल पता",
-        sendOtp: "OTP भेजें",
-        verifyOtp: "सत्यापित करें और लॉगिन करें",
-        enterOtp: "OTP दर्ज करें",
-        language: "भाषा",
-        whatsappLogin: "WhatsApp से लॉगिन करें",
-        features1: "UPI और नकद खर्च ट्रैक करें",
-        features2: "त्योहार बजट योजना",
-        features3: "AI-संचालित अंतर्दृष्टि",
-        features4: "बहुभाषी समर्थन"
-      },
-      te: {
-        welcome: "స్మార్ట్ స్పెండ్‌కు స్వాగతం",
-        subtitle: "తెలివైన భారతీయుల కోసం AI-శక్తితో బడ్జెట్ ట్రాకింగ్",
-        mobileAuth: "మొబైల్ నంబర్",
-        emailAuth: "ఇమెయిల్ చిరునామా",
-        sendOtp: "OTP పంపండి",
-        verifyOtp: "ధృవీకరించి లాగిన్ చేయండి",
-        enterOtp: "OTP నమోదు చేయండి",
-        language: "భాష",
-        whatsappLogin: "WhatsApp తో లాగిన్ చేయండి",
-        features1: "UPI మరియు నగదు ఖర్చులను ట్రాక్ చేయండి",
-        features2: "పండుగ బడ్జెట్ ప్లానింగ్",
-        features3: "AI-శక్తితో అంతర్దృష్టులు",
-        features4: "బహుభాషా మద్దతు"
-      }
-    };
-    return texts[language][key] || texts.en[key];
-  };
+  const features = [
+    {
+      icon: <TrendingUp className="h-8 w-8 text-orange-600" />,
+      title: "Smart Budget Tracking",
+      description: "AI-powered insights help you understand your spending patterns and optimize your budget"
+    },
+    {
+      icon: <Shield className="h-8 w-8 text-orange-600" />,
+      title: "Secure & Private",
+      description: "Bank-level security with end-to-end encryption to keep your financial data safe"
+    },
+    {
+      icon: <Smartphone className="h-8 w-8 text-orange-600" />,
+      title: "Mobile Friendly",
+      description: "Track expenses on the go with our responsive design that works on all devices"
+    },
+    {
+      icon: <Globe className="h-8 w-8 text-orange-600" />,
+      title: "Multi-Language Support",
+      description: "Available in multiple languages to serve users across different regions"
+    }
+  ];
+
+  const testimonials = [
+    {
+      name: "Priya Sharma",
+      role: "Software Engineer",
+      content: "Smart Spend helped me save ₹15,000 in just 3 months by identifying unnecessary expenses!",
+      rating: 5
+    },
+    {
+      name: "Rajesh Kumar",
+      role: "Business Owner",
+      content: "The AI insights are incredibly accurate. It's like having a personal finance advisor.",
+      rating: 5
+    },
+    {
+      name: "Anita Patel",
+      role: "Teacher",
+      content: "Finally, a budgeting app that understands Indian spending habits. Love the local features!",
+      rating: 5
+    }
+  ];
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-orange-50 via-yellow-50 to-green-50 diwali-pattern">
-      <div className="container mx-auto px-4 py-8">
-        {/* Header */}
-        <div className="text-center mb-8">
-          <div className="flex items-center justify-center mb-4">
-            <div className="text-4xl mr-2 diya-animation">🪔</div>
-            <h1 className="text-4xl font-bold bg-gradient-to-r from-orange-600 to-yellow-600 bg-clip-text text-transparent">
-              Smart Spend
-            </h1>
-            <div className="text-2xl ml-2 rupee-animation">₹</div>
-          </div>
-          <p className="text-lg text-gray-600 mb-6">{getLocalizedText('subtitle')}</p>
-          
-          {/* Language Selector */}
-          <div className="mb-6">
-            <Select value={language} onValueChange={setLanguage}>
-              <SelectTrigger className="w-48 mx-auto">
-                <SelectValue placeholder="Select Language" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="en">🇮🇳 English</SelectItem>
-                <SelectItem value="hi">🇮🇳 हिंदी</SelectItem>
-                <SelectItem value="te">🇮🇳 తెలుగు</SelectItem>
-              </SelectContent>
-            </Select>
+    <div className="min-h-screen bg-gradient-to-br from-orange-50 via-yellow-50 to-red-50">
+      {/* Navigation */}
+      <nav className="bg-white shadow-sm border-b">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex justify-between items-center h-16">
+            <div className="flex items-center space-x-2">
+              <span className="text-2xl">🪔</span>
+              <span className="text-xl font-bold bg-gradient-to-r from-orange-600 to-yellow-600 bg-clip-text text-transparent">
+                Smart Spend
+              </span>
+              <span className="text-lg">₹</span>
+            </div>
+            <div className="flex items-center space-x-4">
+              <Button variant="ghost" onClick={() => navigate('/auth')}>
+                Sign In
+              </Button>
+              <Button 
+                onClick={handleGoogleSignIn}
+                disabled={isLoading}
+                className="bg-gradient-to-r from-orange-500 to-yellow-500 text-white"
+              >
+                Get Started Free
+              </Button>
+            </div>
           </div>
         </div>
+      </nav>
 
-        <div className="max-w-md mx-auto">
-          {/* Authentication Card */}
-          <Card className="card-indian mb-6">
-            <CardHeader className="text-center">
-              <CardTitle className="text-2xl text-gray-800">{getLocalizedText('welcome')}</CardTitle>
-              <CardDescription>
-                {!otpSent ? 'Choose your preferred login method' : 'Enter the OTP sent to you'}
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              {!otpSent ? (
-                <>
-                  {/* Auth Mode Toggle */}
-                  <div className="flex bg-gray-100 rounded-lg p-1">
-                    <button
-                      className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-colors ${
-                        authMode === 'mobile' ? 'bg-white shadow-sm text-orange-600' : 'text-gray-600'
-                      }`}
-                      onClick={() => setAuthMode('mobile')}
-                    >
-                      📱 {getLocalizedText('mobileAuth')}
-                    </button>
-                    <button
-                      className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-colors ${
-                        authMode === 'email' ? 'bg-white shadow-sm text-orange-600' : 'text-gray-600'
-                      }`}
-                      onClick={() => setAuthMode('email')}
-                    >
-                      📧 {getLocalizedText('emailAuth')}
-                    </button>
+      {/* Hero Section */}
+      <section className="relative px-4 py-20 sm:px-6 lg:px-8">
+        <div className="max-w-7xl mx-auto text-center">
+          <Badge variant="secondary" className="mb-6 px-4 py-2">
+            🎉 Trusted by 10,000+ Indians
+          </Badge>
+          
+          <h1 className="text-4xl md:text-6xl font-bold text-gray-900 mb-6">
+            Master Your Money with
+            <span className="block bg-gradient-to-r from-orange-600 to-yellow-600 bg-clip-text text-transparent">
+              Smart Spending
+            </span>
+          </h1>
+          
+          <p className="text-xl text-gray-600 mb-8 max-w-3xl mx-auto">
+            Take control of your finances with AI-powered insights, smart budgeting tools, 
+            and personalized recommendations designed specifically for Indian users.
+          </p>
+          
+          <div className="flex flex-col sm:flex-row gap-4 justify-center mb-12">
+            <Button 
+              size="lg" 
+              onClick={handleGoogleSignIn}
+              disabled={isLoading}
+              className="bg-gradient-to-r from-orange-500 to-yellow-500 text-white text-lg px-8 py-4"
+            >
+              <ArrowRight className="mr-2 h-5 w-5" />
+              Start Saving Today
+            </Button>
+            <Button size="lg" variant="outline" className="text-lg px-8 py-4">
+              <Play className="mr-2 h-5 w-5" />
+              Watch Demo
+            </Button>
+          </div>
+          
+          <div className="grid grid-cols-3 gap-8 max-w-md mx-auto text-center">
+            <div>
+              <div className="text-2xl font-bold text-orange-600">₹50L+</div>
+              <div className="text-sm text-gray-600">Money Saved</div>
+            </div>
+            <div>
+              <div className="text-2xl font-bold text-orange-600">10K+</div>
+              <div className="text-sm text-gray-600">Happy Users</div>
+            </div>
+            <div>
+              <div className="text-2xl font-bold text-orange-600">4.8★</div>
+              <div className="text-sm text-gray-600">User Rating</div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Features Section */}
+      <section className="py-20 bg-white">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-16">
+            <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
+              Why Choose Smart Spend?
+            </h2>
+            <p className="text-xl text-gray-600 max-w-2xl mx-auto">
+              Built by Indians, for Indians. We understand your unique financial needs and spending patterns.
+            </p>
+          </div>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+            {features.map((feature, index) => (
+              <Card key={index} className="text-center hover:shadow-lg transition-shadow">
+                <CardHeader>
+                  <div className="mx-auto mb-4">
+                    {feature.icon}
                   </div>
-
-                  {/* Input Fields */}
-                  {authMode === 'mobile' ? (
-                    <div className="space-y-2">
-                      <Label htmlFor="mobile">{getLocalizedText('mobileAuth')}</Label>
-                      <div className="flex">
-                        <span className="inline-flex items-center px-3 rounded-l-md border border-r-0 border-gray-300 bg-gray-50 text-gray-500 sm:text-sm">
-                          +91
-                        </span>
-                        <Input
-                          id="mobile"
-                          type="tel"
-                          placeholder="9876543210"
-                          value={mobileNumber}
-                          onChange={(e) => setMobileNumber(e.target.value)}
-                          className="rounded-l-none"
-                          maxLength={10}
-                        />
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="space-y-2">
-                      <Label htmlFor="email">{getLocalizedText('emailAuth')}</Label>
-                      <Input
-                        id="email"
-                        type="email"
-                        placeholder="your.email@gmail.com"
-                        value={email}
-                        onChange={(e) => setEmail(e.target.value)}
-                      />
-                    </div>
-                  )}
-
-                  <Button 
-                    onClick={handleSendOTP} 
-                    className="w-full btn-primary-indian"
-                    disabled={authMode === 'mobile' ? mobileNumber.length !== 10 : !email.includes('@')}
-                  >
-                    {getLocalizedText('sendOtp')}
-                  </Button>
-
-                  {/* WhatsApp Login */}
-                  <Button variant="outline" className="w-full border-green-500 text-green-600 hover:bg-green-50">
-                    <span className="mr-2">💬</span>
-                    {getLocalizedText('whatsappLogin')}
-                  </Button>
-                </>
-              ) : (
-                <>
-                  <div className="space-y-2">
-                    <Label htmlFor="otp">{getLocalizedText('enterOtp')}</Label>
-                    <Input
-                      id="otp"
-                      type="text"
-                      placeholder="123456"
-                      value={otp}
-                      onChange={(e) => setOtp(e.target.value)}
-                      maxLength={6}
-                      className="text-center text-lg tracking-widest"
-                    />
-                    <p className="text-sm text-gray-500">
-                      Demo OTP: <span className="font-mono font-bold">123456</span>
-                    </p>
-                  </div>
-
-                  <Button 
-                    onClick={handleVerifyOTP} 
-                    className="w-full btn-primary-indian"
-                    disabled={otp.length !== 6}
-                  >
-                    {getLocalizedText('verifyOtp')}
-                  </Button>
-
-                  <Button 
-                    variant="ghost" 
-                    onClick={() => setOtpSent(false)}
-                    className="w-full text-gray-600"
-                  >
-                    ← Back to login
-                  </Button>
-                </>
-              )}
-            </CardContent>
-          </Card>
-
-          {/* Features */}
-          <div className="grid grid-cols-2 gap-4">
-            {[
-              { icon: "💳", text: getLocalizedText('features1') },
-              { icon: "🎉", text: getLocalizedText('features2') },
-              { icon: "🤖", text: getLocalizedText('features3') },
-              { icon: "🌐", text: getLocalizedText('features4') }
-            ].map((feature, index) => (
-              <Card key={index} className="text-center p-4 border-orange-100">
-                <div className="text-2xl mb-2">{feature.icon}</div>
-                <p className="text-sm text-gray-600">{feature.text}</p>
+                  <CardTitle className="text-xl">{feature.title}</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <CardDescription className="text-gray-600">
+                    {feature.description}
+                  </CardDescription>
+                </CardContent>
               </Card>
             ))}
           </div>
         </div>
-      </div>
+      </section>
+
+      {/* Testimonials Section */}
+      <section className="py-20 bg-gradient-to-br from-orange-50 to-yellow-50">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-16">
+            <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
+              What Our Users Say
+            </h2>
+            <p className="text-xl text-gray-600">
+              Join thousands of satisfied users who've transformed their financial lives
+            </p>
+          </div>
+          
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            {testimonials.map((testimonial, index) => (
+              <Card key={index} className="hover:shadow-lg transition-shadow">
+                <CardContent className="p-6">
+                  <div className="flex mb-4">
+                    {[...Array(testimonial.rating)].map((_, i) => (
+                      <Star key={i} className="h-5 w-5 text-yellow-400 fill-current" />
+                    ))}
+                  </div>
+                  <p className="text-gray-600 mb-4 italic">"{testimonial.content}"</p>
+                  <div>
+                    <div className="font-semibold text-gray-900">{testimonial.name}</div>
+                    <div className="text-sm text-gray-500">{testimonial.role}</div>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* About Us Section */}
+      <section className="py-20 bg-white">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+            <div>
+              <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-6">
+                About Smart Spend
+              </h2>
+              <p className="text-lg text-gray-600 mb-6">
+                Smart Spend was born from a simple observation: existing budgeting apps don't understand 
+                the unique financial landscape of India. From managing family expenses to planning for 
+                festivals, we built Smart Spend to be your perfect financial companion.
+              </p>
+              <div className="space-y-4">
+                <div className="flex items-center">
+                  <CheckCircle className="h-6 w-6 text-green-500 mr-3" />
+                  <span className="text-gray-700">AI-powered insights tailored for Indian spending patterns</span>
+                </div>
+                <div className="flex items-center">
+                  <CheckCircle className="h-6 w-6 text-green-500 mr-3" />
+                  <span className="text-gray-700">Multi-language support for diverse users</span>
+                </div>
+                <div className="flex items-center">
+                  <CheckCircle className="h-6 w-6 text-green-500 mr-3" />
+                  <span className="text-gray-700">Built with privacy and security as top priorities</span>
+                </div>
+              </div>
+            </div>
+            <div className="relative">
+              <div className="bg-gradient-to-r from-orange-400 to-yellow-400 rounded-2xl p-8 text-white">
+                <div className="text-center">
+                  <Users className="h-16 w-16 mx-auto mb-4" />
+                  <h3 className="text-2xl font-bold mb-2">Our Mission</h3>
+                  <p className="text-lg opacity-90">
+                    Empowering every Indian to achieve financial freedom through smart, 
+                    personalized money management tools.
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* CTA Section */}
+      <section className="py-20 bg-gradient-to-r from-orange-600 to-yellow-600">
+        <div className="max-w-4xl mx-auto text-center px-4 sm:px-6 lg:px-8">
+          <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">
+            Ready to Transform Your Finances?
+          </h2>
+          <p className="text-xl text-orange-100 mb-8">
+            Join thousands of Indians who are already saving money and building better financial habits.
+          </p>
+          <Button 
+            size="lg" 
+            onClick={handleGoogleSignIn}
+            disabled={isLoading}
+            className="bg-white text-orange-600 hover:bg-gray-50 text-lg px-8 py-4"
+          >
+            Get Started Free Today
+          </Button>
+          <p className="text-orange-100 mt-4 text-sm">
+            No credit card required • Free forever • Start saving in 2 minutes
+          </p>
+        </div>
+      </section>
+
+      {/* Footer */}
+      <footer className="bg-gray-900 text-white py-12">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
+            <div>
+              <div className="flex items-center space-x-2 mb-4">
+                <span className="text-2xl">🪔</span>
+                <span className="text-xl font-bold">Smart Spend</span>
+                <span className="text-lg">₹</span>
+              </div>
+              <p className="text-gray-400">
+                Smart financial management for the modern Indian.
+              </p>
+            </div>
+            <div>
+              <h3 className="font-semibold mb-4">Product</h3>
+              <ul className="space-y-2 text-gray-400">
+                <li>Features</li>
+                <li>Pricing</li>
+                <li>Security</li>
+                <li>Mobile App</li>
+              </ul>
+            </div>
+            <div>
+              <h3 className="font-semibold mb-4">Company</h3>
+              <ul className="space-y-2 text-gray-400">
+                <li>About Us</li>
+                <li>Careers</li>
+                <li>Contact</li>
+                <li>Blog</li>
+              </ul>
+            </div>
+            <div>
+              <h3 className="font-semibold mb-4">Support</h3>
+              <ul className="space-y-2 text-gray-400">
+                <li>Help Center</li>
+                <li>Privacy Policy</li>
+                <li>Terms of Service</li>
+                <li>API Documentation</li>
+              </ul>
+            </div>
+          </div>
+          <div className="border-t border-gray-800 mt-8 pt-8 text-center text-gray-400">
+            <p>&copy; 2024 Smart Spend. Made with ❤️ in India.</p>
+          </div>
+        </div>
+      </footer>
     </div>
   );
 };

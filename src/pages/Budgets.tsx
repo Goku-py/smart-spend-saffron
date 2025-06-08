@@ -1,5 +1,4 @@
-
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
@@ -8,51 +7,67 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import Layout from "@/components/Layout";
-import { budgetData } from "../data/mockData";
 import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
+import { useTranslation } from 'react-i18next';
+import { Pencil, Trash2 } from "lucide-react";
+
+interface Budget {
+  id: string;
+  name: string;
+  amount: number;
+  category: string;
+  spent: number;
+  created_at: string;
+  updated_at: string;
+}
 
 const Budgets = () => {
-  const [selectedPeriod, setSelectedPeriod] = useState('month');
-  const [budgets, setBudgets] = useState(budgetData);
+  const [budgets, setBudgets] = useState<Budget[]>([]);
   const [showCreateBudget, setShowCreateBudget] = useState(false);
+  const [showEditBudget, setShowEditBudget] = useState(false);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [selectedBudget, setSelectedBudget] = useState<Budget | null>(null);
   const [newBudget, setNewBudget] = useState({
-    category: '',
-    allocated: '',
-    period: 'monthly'
+    name: '',
+    amount: '',
+    category: ''
   });
+  const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
+  const { t } = useTranslation();
 
-  const totalBudget = budgets.reduce((sum, budget) => sum + budget.allocated, 0);
-  const totalSpent = budgets.reduce((sum, budget) => sum + budget.spent, 0);
+  // Fetch budgets from Supabase
+  const fetchBudgets = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
 
-  const handleCreateBudget = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!newBudget.category || !newBudget.allocated) {
+      const { data, error } = await supabase
+        .from('budgets')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      setBudgets(data || []);
+    } catch (error: any) {
       toast({
-        title: "Missing Information",
-        description: "Please fill all required fields",
+        title: "Error",
+        description: "Failed to fetch budgets",
         variant: "destructive",
       });
-      return;
     }
-
-    const budgetToAdd = {
-      category: newBudget.category,
-      allocated: parseFloat(newBudget.allocated),
-      spent: 0,
-      icon: getCategoryIcon(newBudget.category)
-    };
-
-    setBudgets(prev => [...prev, budgetToAdd]);
-    setShowCreateBudget(false);
-    setNewBudget({ category: '', allocated: '', period: 'monthly' });
-    
-    toast({
-      title: "Budget Created Successfully! ✅",
-      description: `₹${newBudget.allocated} budget set for ${newBudget.category}`,
-    });
   };
+
+  useEffect(() => {
+    fetchBudgets();
+  }, []);
+
+  const totalBudget = budgets.reduce((sum, budget) => sum + budget.amount, 0);
+  const totalSpent = budgets.reduce((sum, budget) => sum + (budget.spent || 0), 0);
 
   const getCategoryIcon = (category: string) => {
     const iconMap: { [key: string]: string } = {
@@ -68,18 +83,135 @@ const Budgets = () => {
     return iconMap[category] || '💳';
   };
 
-  const handleEditBudget = (category: string) => {
-    toast({
-      title: "Edit Budget",
-      description: `Edit functionality for ${category} budget`,
-    });
+  const handleCreateBudget = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newBudget.name || !newBudget.amount || !newBudget.category) {
+      toast({
+        title: "Missing Information",
+        description: "Please fill all required fields",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("User not authenticated");
+
+      const { error } = await supabase
+        .from('budgets')
+        .insert({
+          user_id: user.id,
+          name: newBudget.name,
+          amount: parseFloat(newBudget.amount),
+          category: newBudget.category,
+          spent: 0
+        });
+
+      if (error) throw error;
+
+      setShowCreateBudget(false);
+      setNewBudget({ name: '', amount: '', category: '' });
+      fetchBudgets();
+      
+      toast({
+        title: t('budgetCreated'),
+        description: `₹${newBudget.amount} budget set for ${newBudget.name}`,
+      });
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to create budget",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
-  const handleBudgetDetails = (category: string) => {
-    toast({
-      title: "Budget Details",
-      description: `Viewing details for ${category} budget`,
+  const handleEditBudget = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedBudget || !newBudget.name || !newBudget.amount || !newBudget.category) return;
+
+    setIsLoading(true);
+    try {
+      const { error } = await supabase
+        .from('budgets')
+        .update({
+          name: newBudget.name,
+          amount: parseFloat(newBudget.amount),
+          category: newBudget.category,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', selectedBudget.id);
+
+      if (error) throw error;
+
+      setShowEditBudget(false);
+      setSelectedBudget(null);
+      setNewBudget({ name: '', amount: '', category: '' });
+      fetchBudgets();
+      
+      toast({
+        title: t('budgetUpdated'),
+        description: `Budget updated successfully`,
+      });
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to update budget",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleDeleteBudget = async () => {
+    if (!selectedBudget) return;
+
+    setIsLoading(true);
+    try {
+      const { error } = await supabase
+        .from('budgets')
+        .delete()
+        .eq('id', selectedBudget.id);
+
+      if (error) throw error;
+
+      setShowDeleteDialog(false);
+      setSelectedBudget(null);
+      fetchBudgets();
+      
+      toast({
+        title: t('budgetDeleted'),
+        description: `Budget deleted successfully`,
+      });
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to delete budget",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const openEditDialog = (budget: Budget) => {
+    setSelectedBudget(budget);
+    setNewBudget({
+      name: budget.name,
+      amount: budget.amount.toString(),
+      category: budget.category
     });
+    setShowEditBudget(true);
+  };
+
+  const openDeleteDialog = (budget: Budget) => {
+    setSelectedBudget(budget);
+    setShowDeleteDialog(true);
   };
 
   return (
@@ -88,40 +220,40 @@ const Budgets = () => {
         {/* Header */}
         <div className="flex justify-between items-center">
           <div>
-            <h1 className="text-2xl font-bold text-gray-800">Budget Management</h1>
+            <h1 className="text-2xl font-bold text-gray-800">{t('budgets')} Management</h1>
             <p className="text-gray-600">Set and track your spending limits</p>
           </div>
           <Button 
             className="bg-gradient-to-r from-orange-500 to-yellow-500 text-white"
             onClick={() => setShowCreateBudget(true)}
           >
-            Create Budget
+            {t('createBudget')}
           </Button>
         </div>
 
         {/* Budget Overview */}
         <Card className="bg-gradient-to-r from-green-50 to-blue-50 border-green-200">
           <CardHeader>
-            <CardTitle>Monthly Budget Overview</CardTitle>
+            <CardTitle>{t('monthlyBudget')} Overview</CardTitle>
             <CardDescription>Your overall budget performance</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               <div className="text-center">
                 <div className="text-3xl font-bold text-blue-600">₹{totalBudget.toLocaleString('en-IN')}</div>
-                <div className="text-sm text-gray-600">Total Budget</div>
+                <div className="text-sm text-gray-600">Total {t('budget')}</div>
               </div>
               <div className="text-center">
                 <div className="text-3xl font-bold text-red-600">₹{totalSpent.toLocaleString('en-IN')}</div>
-                <div className="text-sm text-gray-600">Total Spent</div>
+                <div className="text-sm text-gray-600">Total {t('spent')}</div>
               </div>
               <div className="text-center">
                 <div className="text-3xl font-bold text-green-600">₹{(totalBudget - totalSpent).toLocaleString('en-IN')}</div>
-                <div className="text-sm text-gray-600">Remaining</div>
+                <div className="text-sm text-gray-600">{t('remaining')}</div>
               </div>
             </div>
             <Progress 
-              value={(totalSpent / totalBudget) * 100} 
+              value={totalBudget > 0 ? (totalSpent / totalBudget) * 100 : 0} 
               className="mt-4 h-3"
             />
           </CardContent>
@@ -129,31 +261,36 @@ const Budgets = () => {
 
         {/* Category Budgets */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {budgets.map((budget, index) => {
-            const percentage = (budget.spent / budget.allocated) * 100;
-            const remaining = budget.allocated - budget.spent;
+          {budgets.map((budget) => {
+            const percentage = budget.amount > 0 ? (budget.spent / budget.amount) * 100 : 0;
+            const remaining = budget.amount - budget.spent;
             const status = percentage > 100 ? 'over' : percentage > 80 ? 'warning' : 'good';
             
             return (
-              <Card key={`${budget.category}-${index}`} className="relative overflow-hidden">
+              <Card key={budget.id} className="relative overflow-hidden">
                 <CardHeader className="pb-3">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center space-x-2">
-                      <span className="text-2xl">{budget.icon}</span>
-                      <CardTitle className="text-lg">{budget.category}</CardTitle>
+                      <span className="text-2xl">{getCategoryIcon(budget.category)}</span>
+                      <div>
+                        <CardTitle className="text-lg">{budget.name}</CardTitle>
+                        <CardDescription className="text-sm text-gray-500">{t(budget.category)}</CardDescription>
+                      </div>
                     </div>
-                    <Badge 
-                      variant={status === 'over' ? 'destructive' : status === 'warning' ? 'default' : 'secondary'}
-                    >
-                      {percentage.toFixed(0)}%
-                    </Badge>
+                    <div className="flex items-center space-x-2">
+                      <Badge 
+                        variant={status === 'over' ? 'destructive' : status === 'warning' ? 'default' : 'secondary'}
+                      >
+                        {percentage.toFixed(0)}%
+                      </Badge>
+                    </div>
                   </div>
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-3">
                     <div className="flex justify-between text-sm">
-                      <span>Spent: ₹{budget.spent.toLocaleString('en-IN')}</span>
-                      <span>Budget: ₹{budget.allocated.toLocaleString('en-IN')}</span>
+                      <span>{t('spent')}: ₹{budget.spent.toLocaleString('en-IN')}</span>
+                      <span>{t('budget')}: ₹{budget.amount.toLocaleString('en-IN')}</span>
                     </div>
                     
                     <Progress 
@@ -168,23 +305,23 @@ const Budgets = () => {
                       <div className={`text-sm font-medium ${
                         remaining < 0 ? 'text-red-600' : 'text-green-600'
                       }`}>
-                        {remaining >= 0 ? 'Remaining: ' : 'Over by: '}
+                        {remaining >= 0 ? `${t('remaining')}: ` : 'Over by: '}
                         ₹{Math.abs(remaining).toLocaleString('en-IN')}
                       </div>
                       <div className="flex space-x-2">
                         <Button 
                           variant="outline" 
                           size="sm"
-                          onClick={() => handleEditBudget(budget.category)}
+                          onClick={() => openEditDialog(budget)}
                         >
-                          Edit
+                          <Pencil className="h-4 w-4" />
                         </Button>
                         <Button 
                           variant="outline" 
                           size="sm"
-                          onClick={() => handleBudgetDetails(budget.category)}
+                          onClick={() => openDeleteDialog(budget)}
                         >
-                          Details
+                          <Trash2 className="h-4 w-4" />
                         </Button>
                       </div>
                     </div>
@@ -201,65 +338,66 @@ const Budgets = () => {
           })}
         </div>
 
-        {/* Budget Tips */}
-        <Card>
-          <CardHeader>
-            <CardTitle>💡 Budget Tips</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-3">
-              <div className="p-3 bg-blue-50 rounded-lg border-l-4 border-blue-400">
-                <p className="text-sm text-blue-800">
-                  🎯 Your Food & Dining budget is 93% used. Consider cooking at home to save money.
-                </p>
-              </div>
-              <div className="p-3 bg-green-50 rounded-lg border-l-4 border-green-400">
-                <p className="text-sm text-green-800">
-                  ✅ Great job staying within your Travel budget this month!
-                </p>
-              </div>
-              <div className="p-3 bg-yellow-50 rounded-lg border-l-4 border-yellow-400">
-                <p className="text-sm text-yellow-800">
-                  ⚠️ Festival season is approaching. Consider setting aside ₹500/week for Diwali expenses.
-                </p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+        {budgets.length === 0 && (
+          <Card>
+            <CardContent className="text-center py-12">
+              <div className="text-6xl mb-4">💰</div>
+              <h3 className="text-xl font-semibold mb-2">No budgets yet</h3>
+              <p className="text-gray-600 mb-4">Create your first budget to start tracking your expenses</p>
+              <Button 
+                onClick={() => setShowCreateBudget(true)}
+                className="bg-gradient-to-r from-orange-500 to-yellow-500 text-white"
+              >
+                {t('createBudget')}
+              </Button>
+            </CardContent>
+          </Card>
+        )}
       </div>
 
       {/* Create Budget Modal */}
       <Dialog open={showCreateBudget} onOpenChange={setShowCreateBudget}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>Create New Budget</DialogTitle>
+            <DialogTitle>{t('createBudget')}</DialogTitle>
             <DialogDescription>
               Set spending limits for different categories
             </DialogDescription>
           </DialogHeader>
           
           <form onSubmit={handleCreateBudget} className="space-y-4">
+            
             <div className="space-y-2">
-              <Label>Category</Label>
+              <Label>{t('budgetName')}</Label>
+              <Input
+                value={newBudget.name}
+                onChange={(e) => setNewBudget(prev => ({...prev, name: e.target.value}))}
+                placeholder="e.g., Monthly Groceries"
+                required
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label>{t('category')}</Label>
               <Select value={newBudget.category} onValueChange={(value) => setNewBudget(prev => ({...prev, category: value}))}>
                 <SelectTrigger>
                   <SelectValue placeholder="Select category" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="Food & Dining">Food & Dining</SelectItem>
-                  <SelectItem value="Kirana">Kirana (Groceries)</SelectItem>
-                  <SelectItem value="Travel">Travel</SelectItem>
-                  <SelectItem value="Utilities">Utilities</SelectItem>
-                  <SelectItem value="Healthcare">Healthcare</SelectItem>
-                  <SelectItem value="Shopping">Shopping</SelectItem>
-                  <SelectItem value="Entertainment">Entertainment</SelectItem>
-                  <SelectItem value="Education">Education</SelectItem>
+                  <SelectItem value="Food & Dining">🍽️ {t('Food & Dining')}</SelectItem>
+                  <SelectItem value="Kirana">🛒 {t('Kirana')}</SelectItem>
+                  <SelectItem value="Travel">🚗 {t('Travel')}</SelectItem>
+                  <SelectItem value="Utilities">📱 {t('Utilities')}</SelectItem>
+                  <SelectItem value="Healthcare">🏥 {t('Healthcare')}</SelectItem>
+                  <SelectItem value="Shopping">🛍️ {t('Shopping')}</SelectItem>
+                  <SelectItem value="Entertainment">🎬 {t('Entertainment')}</SelectItem>
+                  <SelectItem value="Education">📚 {t('Education')}</SelectItem>
                 </SelectContent>
               </Select>
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="amount">Budget Amount</Label>
+              <Label htmlFor="amount">{t('budgetAmount')}</Label>
               <div className="relative">
                 <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-orange-600 font-bold">
                   ₹
@@ -268,27 +406,14 @@ const Budgets = () => {
                   id="amount"
                   type="number"
                   placeholder="0"
-                  value={newBudget.allocated}
-                  onChange={(e) => setNewBudget(prev => ({...prev, allocated: e.target.value}))}
+                  value={newBudget.amount}
+                  onChange={(e) => setNewBudget(prev => ({...prev, amount: e.target.value}))}
                   className="pl-8"
                   min="0"
                   step="100"
+                  required
                 />
               </div>
-            </div>
-
-            <div className="space-y-2">
-              <Label>Budget Period</Label>
-              <Select value={newBudget.period} onValueChange={(value) => setNewBudget(prev => ({...prev, period: value}))}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="weekly">Weekly</SelectItem>
-                  <SelectItem value="monthly">Monthly</SelectItem>
-                  <SelectItem value="quarterly">Quarterly</SelectItem>
-                </SelectContent>
-              </Select>
             </div>
 
             <div className="flex space-x-2 pt-4">
@@ -297,14 +422,113 @@ const Budgets = () => {
               </Button>
               <Button 
                 type="submit" 
+                disabled={isLoading}
                 className="flex-1 bg-gradient-to-r from-orange-500 to-yellow-500 text-white"
               >
-                Create Budget
+                {t('createBudget')}
               </Button>
             </div>
           </form>
         </DialogContent>
       </Dialog>
+
+      {/* Edit Budget Modal */}
+      <Dialog open={showEditBudget} onOpenChange={setShowEditBudget}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>{t('editBudget')}</DialogTitle>
+            <DialogDescription>
+              Update your budget details
+            </DialogDescription>
+          </DialogHeader>
+          
+          <form onSubmit={handleEditBudget} className="space-y-4">
+            
+            <div className="space-y-2">
+              <Label>{t('budgetName')}</Label>
+              <Input
+                value={newBudget.name}
+                onChange={(e) => setNewBudget(prev => ({...prev, name: e.target.value}))}
+                placeholder="e.g., Monthly Groceries"
+                required
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label>{t('category')}</Label>
+              <Select value={newBudget.category} onValueChange={(value) => setNewBudget(prev => ({...prev, category: value}))}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Food & Dining">🍽️ {t('Food & Dining')}</SelectItem>
+                  <SelectItem value="Kirana">🛒 {t('Kirana')}</SelectItem>
+                  <SelectItem value="Travel">🚗 {t('Travel')}</SelectItem>
+                  <SelectItem value="Utilities">📱 {t('Utilities')}</SelectItem>
+                  <SelectItem value="Healthcare">🏥 {t('Healthcare')}</SelectItem>
+                  <SelectItem value="Shopping">🛍️ {t('Shopping')}</SelectItem>
+                  <SelectItem value="Entertainment">🎬 {t('Entertainment')}</SelectItem>
+                  <SelectItem value="Education">📚 {t('Education')}</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="editAmount">{t('budgetAmount')}</Label>
+              <div className="relative">
+                <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-orange-600 font-bold">
+                  ₹
+                </span>
+                <Input
+                  id="editAmount"
+                  type="number"
+                  value={newBudget.amount}
+                  onChange={(e) => setNewBudget(prev => ({...prev, amount: e.target.value}))}
+                  className="pl-8"
+                  min="0"
+                  step="100"
+                  required
+                />
+              </div>
+            </div>
+
+            <div className="flex space-x-2 pt-4">
+              <Button type="button" variant="outline" onClick={() => setShowEditBudget(false)} className="flex-1">
+                Cancel
+              </Button>
+              <Button 
+                type="submit" 
+                disabled={isLoading}
+                className="flex-1 bg-gradient-to-r from-orange-500 to-yellow-500 text-white"
+              >
+                Update Budget
+              </Button>
+            </div>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Budget</AlertDialogTitle>
+            <AlertDialogDescription>
+              {t('confirmDelete')} This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDeleteBudget}
+              disabled={isLoading}
+              className="bg-red-600 hover:bg-red-700"
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Layout>
   );
 };

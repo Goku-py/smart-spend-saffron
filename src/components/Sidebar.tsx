@@ -1,10 +1,10 @@
-
 import { useLocation, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Home, Plus, Target, BarChart, Bell, User } from "lucide-react";
-import { useTranslation } from "../contexts/TranslationContext";
+import { useTranslation } from "react-i18next";
 import { useNotifications } from "../contexts/NotificationContext";
+import LanguageSelector from "./LanguageSelector";
 
 const Sidebar = () => {
   const location = useLocation();
@@ -25,13 +25,14 @@ const Sidebar = () => {
     <div className="fixed left-0 top-0 h-full w-64 bg-white border-r border-gray-200 shadow-sm">
       {/* Logo */}
       <div className="p-6 border-b border-gray-200">
-        <div className="flex items-center space-x-2">
+        <div className="flex items-center space-x-2 mb-4">
           <span className="text-2xl">🪔</span>
           <span className="text-xl font-bold bg-gradient-to-r from-orange-600 to-yellow-600 bg-clip-text text-transparent">
             Smart Spend
           </span>
           <span className="text-lg">₹</span>
         </div>
+        <LanguageSelector />
       </div>
 
       {/* Navigation */}
