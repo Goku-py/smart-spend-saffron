@@ -63,13 +63,24 @@ const Dashboard = () => {
     setShowAddExpense(false);
   };
 
+  // Get user display name from email or user metadata
+  const getUserDisplayName = () => {
+    if (user?.user_metadata?.full_name) {
+      return user.user_metadata.full_name;
+    }
+    if (user?.email) {
+      return user.email.split('@')[0];
+    }
+    return 'User';
+  };
+
   return (
     <Layout>
       <div className="space-y-6">
         {/* Welcome Header */}
         <div>
           <h1 className="text-2xl font-bold text-gray-800">
-            {t('namaste')}, {user?.name || 'User'}! 🙏
+            {t('namaste')}, {getUserDisplayName()}! 🙏
           </h1>
           <p className="text-gray-600">Here's your spending overview for June 2024</p>
         </div>

@@ -47,9 +47,20 @@ const Profile = () => {
   const { toast } = useToast();
   const navigate = useNavigate();
 
+  // Get user display name from email or user metadata
+  const getUserDisplayName = () => {
+    if (user?.user_metadata?.full_name) {
+      return user.user_metadata.full_name;
+    }
+    if (user?.email) {
+      return user.email.split('@')[0];
+    }
+    return '';
+  };
+
   const [userProfile, setUserProfile] = useState<UserProfile>({
     personalInfo: {
-      name: user?.name || '',
+      name: getUserDisplayName(),
       email: user?.email || '',
       phone: user?.phone || '',
       monthlyIncome: 50000,
