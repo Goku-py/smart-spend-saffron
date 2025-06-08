@@ -1,8 +1,9 @@
+
 import { useLocation, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Home, Plus, Target, BarChart, Bell, User } from "lucide-react";
-import { useTranslation } from "react-i18next";
+import { useTranslation } from "../contexts/TranslationContext";
 import { useNotifications } from "../contexts/NotificationContext";
 
 const MobileNav = () => {
