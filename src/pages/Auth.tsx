@@ -26,9 +26,18 @@ const Auth = () => {
   useEffect(() => {
     // Check if user is already logged in
     const checkAuth = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (session) {
-        navigate('/dashboard');
+      try {
+        const { data: { session }, error } = await supabase.auth.getSession();
+        if (error) {
+          console.error('Error checking auth:', error);
+          return;
+        }
+        if (session?.user) {
+          console.log('User already authenticated, redirecting to dashboard');
+          navigate('/dashboard');
+        }
+      } catch (error) {
+        console.error('Auth check error:', error);
       }
     };
     checkAuth();
@@ -44,8 +53,12 @@ const Auth = () => {
         }
       });
       
-      if (error) throw error;
+      if (error) {
+        console.error('Google auth error:', error);
+        throw error;
+      }
     } catch (error: any) {
+      console.error('Google auth failed:', error);
       toast({
         title: "Sign In Error",
         description: error.message || "Failed to sign in with Google. Please try again.",
@@ -62,7 +75,7 @@ const Auth = () => {
 
     try {
       if (isSignUp) {
-        const { error } = await supabase.auth.signUp({
+        const { data, error } = await supabase.auth.signUp({
           email,
           password,
           options: {
@@ -75,21 +88,33 @@ const Auth = () => {
 
         if (error) throw error;
 
-        toast({
-          title: "Account Created!",
-          description: "Please check your email to verify your account.",
-        });
+        if (data.user && !data.session) {
+          toast({
+            title: "Check your email",
+            description: "We've sent you a confirmation link to complete your registration.",
+          });
+        } else {
+          toast({
+            title: "Account Created!",
+            description: "Welcome! You're now signed in.",
+          });
+          navigate('/dashboard');
+        }
       } else {
-        const { error } = await supabase.auth.signInWithPassword({
+        const { data, error } = await supabase.auth.signInWithPassword({
           email,
           password,
         });
 
         if (error) throw error;
 
-        navigate('/dashboard');
+        if (data.user) {
+          console.log('Login successful, redirecting to dashboard');
+          navigate('/dashboard');
+        }
       }
     } catch (error: any) {
+      console.error('Auth error:', error);
       toast({
         title: isSignUp ? "Sign Up Error" : "Sign In Error",
         description: error.message || "An error occurred. Please try again.",
@@ -217,7 +242,7 @@ const Auth = () => {
                 disabled={isLoading}
                 className="w-full bg-gradient-to-r from-orange-500 to-yellow-500 text-white h-12"
               >
-                {isSignUp ? t('createAccount') : t('signIn')}
+                {isLoading ? "Loading..." : (isSignUp ? t('createAccount') : t('signIn'))}
               </Button>
             </form>
 
@@ -226,6 +251,7 @@ const Auth = () => {
                 variant="link"
                 onClick={() => setIsSignUp(!isSignUp)}
                 className="text-orange-600"
+                disabled={isLoading}
               >
                 {isSignUp 
                   ? "Already have an account? Sign in" 
