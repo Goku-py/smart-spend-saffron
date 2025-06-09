@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -26,18 +25,38 @@ const Landing = () => {
   const handleGoogleSignIn = async () => {
     setIsLoading(true);
     try {
-      const { error } = await supabase.auth.signInWithOAuth({
+      console.log('Starting Google OAuth sign in...');
+      
+      const { data, error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
           redirectTo: `${window.location.origin}/dashboard`
         }
       });
       
-      if (error) throw error;
-    } catch (error) {
+      console.log('Google OAuth response:', { data, error });
+      
+      if (error) {
+        console.error('Google OAuth error details:', error);
+        
+        // Provide specific error messages based on error type
+        let errorMessage = "Failed to sign in with Google. Please try again.";
+        
+        if (error.message.includes('404') || error.message.includes('Not Found')) {
+          errorMessage = "Google OAuth is not configured. Please set up Google authentication in your Supabase dashboard.";
+        } else if (error.message.includes('403') || error.message.includes('Forbidden')) {
+          errorMessage = "Google OAuth configuration error. Please check your OAuth settings in Supabase.";
+        } else if (error.message.includes('redirect')) {
+          errorMessage = "OAuth redirect URL mismatch. Please check your redirect URLs in Google Cloud Console.";
+        }
+        
+        throw new Error(errorMessage);
+      }
+    } catch (error: any) {
+      console.error('Google auth failed:', error);
       toast({
-        title: "Sign In Error",
-        description: "Failed to sign in with Google. Please try again.",
+        title: "Google Sign In Error",
+        description: error.message || "Failed to sign in with Google. Please try again.",
         variant: "destructive",
       });
     } finally {
@@ -111,7 +130,7 @@ const Landing = () => {
                 disabled={isLoading}
                 className="bg-gradient-to-r from-orange-500 to-yellow-500 text-white"
               >
-                Get Started Free
+                {isLoading ? "Loading..." : "Get Started Free"}
               </Button>
             </div>
           </div>
@@ -145,7 +164,7 @@ const Landing = () => {
               className="bg-gradient-to-r from-orange-500 to-yellow-500 text-white text-lg px-8 py-4"
             >
               <ArrowRight className="mr-2 h-5 w-5" />
-              Start Saving Today
+              {isLoading ? "Loading..." : "Start Saving Today"}
             </Button>
             <Button size="lg" variant="outline" className="text-lg px-8 py-4">
               <Play className="mr-2 h-5 w-5" />
@@ -294,7 +313,7 @@ const Landing = () => {
             disabled={isLoading}
             className="bg-white text-orange-600 hover:bg-gray-50 text-lg px-8 py-4"
           >
-            Get Started Free Today
+            {isLoading ? "Loading..." : "Get Started Free Today"}
           </Button>
           <p className="text-orange-100 mt-4 text-sm">
             No credit card required • Free forever • Start saving in 2 minutes

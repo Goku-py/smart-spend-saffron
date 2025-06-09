@@ -46,22 +46,38 @@ const Auth = () => {
   const handleGoogleSignIn = async () => {
     setIsLoading(true);
     try {
-      const { error } = await supabase.auth.signInWithOAuth({
+      console.log('Starting Google OAuth sign in from Auth page...');
+      
+      const { data, error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
           redirectTo: `${window.location.origin}/dashboard`
         }
       });
       
+      console.log('Google OAuth response:', { data, error });
+      
       if (error) {
-        console.error('Google auth error:', error);
-        throw error;
+        console.error('Google OAuth error details:', error);
+        
+        // Provide specific error messages based on error type
+        let errorMessage = "Failed to sign in with Google. Please try again.";
+        
+        if (error.message.includes('404') || error.message.includes('Not Found')) {
+          errorMessage = "Google OAuth is not configured properly. Please contact support.";
+        } else if (error.message.includes('403') || error.message.includes('Forbidden')) {
+          errorMessage = "Google OAuth access denied. Please check your configuration or try email/password sign in.";
+        } else if (error.message.includes('redirect')) {
+          errorMessage = "OAuth redirect URL error. Please try again or use email/password.";
+        }
+        
+        throw new Error(errorMessage);
       }
     } catch (error: any) {
       console.error('Google auth failed:', error);
       toast({
-        title: "Sign In Error",
-        description: error.message || "Failed to sign in with Google. Please try again.",
+        title: "Google Sign In Error",
+        description: error.message || "Failed to sign in with Google. Please try email/password instead.",
         variant: "destructive",
       });
     } finally {
@@ -175,7 +191,7 @@ const Auth = () => {
                 <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
                 <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
               </svg>
-              <span>{t('signInWithGoogle')}</span>
+              <span>{isLoading ? "Loading..." : t('signInWithGoogle')}</span>
             </Button>
 
             <div className="relative">
@@ -258,6 +274,12 @@ const Auth = () => {
                   : "Don't have an account? Sign up"
                 }
               </Button>
+            </div>
+
+            {/* Fallback message for Google OAuth issues */}
+            <div className="text-center text-sm text-gray-500 border-t pt-4">
+              <p>Having trouble with Google sign in?</p>
+              <p>Try using email and password instead.</p>
             </div>
           </CardContent>
         </Card>
