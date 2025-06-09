@@ -17,27 +17,28 @@ export const useTheme = () => {
 };
 
 export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  // Always default to light mode, only check localStorage for user preference
   const [theme, setThemeState] = useState<'light' | 'dark'>(() => {
-    // Check localStorage first
-    const savedTheme = localStorage.getItem('smartspend_theme');
-    if (savedTheme === 'light' || savedTheme === 'dark') {
-      return savedTheme;
+    try {
+      const savedTheme = localStorage.getItem('smartspend_theme');
+      // Only use saved theme if it's explicitly set, otherwise default to light
+      return (savedTheme === 'light' || savedTheme === 'dark') ? savedTheme : 'light';
+    } catch (error) {
+      console.warn('Failed to load theme preference:', error);
+      return 'light';
     }
-    
-    // Check system preference
-    if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
-      return 'dark';
-    }
-    
-    return 'light';
   });
 
   const setTheme = (newTheme: 'light' | 'dark') => {
     setThemeState(newTheme);
-    localStorage.setItem('smartspend_theme', newTheme);
+    try {
+      localStorage.setItem('smartspend_theme', newTheme);
+    } catch (error) {
+      console.warn('Failed to save theme preference:', error);
+    }
     document.documentElement.setAttribute('data-theme', newTheme);
     
-    // Update CSS classes
+    // Update CSS classes for theme switching
     if (newTheme === 'dark') {
       document.documentElement.classList.add('dark');
     } else {
@@ -46,7 +47,8 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   };
 
   const toggleTheme = () => {
-    setTheme(theme === 'light' ? 'dark' : 'light');
+    const newTheme = theme === 'light' ? 'dark' : 'light';
+    setTheme(newTheme);
   };
 
   // Apply theme on mount and changes
@@ -59,22 +61,6 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       document.documentElement.classList.remove('dark');
     }
   }, [theme]);
-
-  // Listen for system theme changes
-  useEffect(() => {
-    const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
-    
-    const handleChange = (e: MediaQueryListEvent) => {
-      // Only auto-switch if user hasn't manually set a preference
-      const savedTheme = localStorage.getItem('smartspend_theme');
-      if (!savedTheme) {
-        setTheme(e.matches ? 'dark' : 'light');
-      }
-    };
-
-    mediaQuery.addEventListener('change', handleChange);
-    return () => mediaQuery.removeEventListener('change', handleChange);
-  }, []);
 
   return (
     <ThemeContext.Provider value={{ theme, toggleTheme, setTheme }}>

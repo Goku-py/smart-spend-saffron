@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 import SEOWrapper from "../components/SEOWrapper";
 import AuthModal from "../components/AuthModal";
+import ThemeToggle from "../components/ThemeToggle";
 
 const Landing = () => {
   const navigate = useNavigate();
@@ -81,9 +82,9 @@ const Landing = () => {
       description="Take control of your finances with Smart Spend - AI-powered budget tracking, expense management, and financial insights designed specifically for Indian users."
       keywords="budget tracker, expense tracker, financial management, AI insights, Indian budget app, UPI tracking"
     >
-      <div className="min-h-screen bg-gradient-to-br from-orange-50 via-yellow-50 to-red-50">
+      <div className="min-h-screen bg-gradient-to-br from-orange-50 via-yellow-50 to-red-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 theme-transition">
         {/* Navigation */}
-        <nav className="bg-white shadow-sm border-b">
+        <nav className="bg-white dark:bg-gray-900 shadow-sm border-b border-gray-200 dark:border-gray-700 theme-transition">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="flex justify-between items-center h-16">
               <div className="flex items-center space-x-2">
@@ -94,6 +95,13 @@ const Landing = () => {
                 <span className="text-lg">₹</span>
               </div>
               <div className="flex items-center space-x-4">
+                {/* Theme Toggle in Navigation */}
+                <ThemeToggle 
+                  variant="outline"
+                  size="default"
+                  showLabel={false}
+                  className="border-2"
+                />
                 <Button variant="ghost" onClick={() => navigate('/help')}>
                   Help
                 </Button>
@@ -114,18 +122,18 @@ const Landing = () => {
         {/* Hero Section */}
         <section className="relative px-4 py-20 sm:px-6 lg:px-8">
           <div className="max-w-7xl mx-auto text-center">
-            <Badge variant="secondary" className="mb-6 px-4 py-2">
+            <Badge variant="secondary" className="mb-6 px-4 py-2 bg-white/80 dark:bg-gray-800/80 backdrop-blur">
               🎉 Trusted by 10,000+ Indians
             </Badge>
             
-            <h1 className="text-4xl md:text-6xl font-bold text-gray-900 mb-6">
+            <h1 className="text-4xl md:text-6xl font-bold text-gray-900 dark:text-white mb-6 theme-transition">
               Master Your Money with
               <span className="block bg-gradient-to-r from-orange-600 to-yellow-600 bg-clip-text text-transparent">
                 Smart Spending
               </span>
             </h1>
             
-            <p className="text-xl text-gray-600 mb-8 max-w-3xl mx-auto">
+            <p className="text-xl text-gray-600 dark:text-gray-300 mb-8 max-w-3xl mx-auto theme-transition">
               Take control of your finances with AI-powered insights, smart budgeting tools, 
               and personalized recommendations designed specifically for Indian users.
             </p>
@@ -142,7 +150,7 @@ const Landing = () => {
               <Button 
                 size="lg" 
                 variant="outline" 
-                className="text-lg px-8 py-4"
+                className="text-lg px-8 py-4 border-2 dark:border-gray-600 dark:text-gray-300"
                 onClick={() => setShowAuthModal(true)}
               >
                 <svg className="mr-2 h-5 w-5" viewBox="0 0 24 24">
@@ -158,43 +166,43 @@ const Landing = () => {
             <div className="grid grid-cols-3 gap-8 max-w-md mx-auto text-center">
               <div>
                 <div className="text-2xl font-bold text-orange-600">₹50L+</div>
-                <div className="text-sm text-gray-600">Money Saved</div>
+                <div className="text-sm text-gray-600 dark:text-gray-400">Money Saved</div>
               </div>
               <div>
                 <div className="text-2xl font-bold text-orange-600">10K+</div>
-                <div className="text-sm text-gray-600">Happy Users</div>
+                <div className="text-sm text-gray-600 dark:text-gray-400">Happy Users</div>
               </div>
               <div>
                 <div className="text-2xl font-bold text-orange-600">4.8★</div>
-                <div className="text-sm text-gray-600">User Rating</div>
+                <div className="text-sm text-gray-600 dark:text-gray-400">User Rating</div>
               </div>
             </div>
           </div>
         </section>
 
         {/* Features Section */}
-        <section className="py-20 bg-white">
+        <section className="py-20 bg-white dark:bg-gray-900 theme-transition">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="text-center mb-16">
-              <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
+              <h2 className="text-3xl md:text-4xl font-bold text-gray-900 dark:text-white mb-4 theme-transition">
                 Why Choose Smart Spend?
               </h2>
-              <p className="text-xl text-gray-600 max-w-2xl mx-auto">
+              <p className="text-xl text-gray-600 dark:text-gray-300 max-w-2xl mx-auto theme-transition">
                 Built by Indians, for Indians. We understand your unique financial needs and spending patterns.
               </p>
             </div>
             
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
               {features.map((feature, index) => (
-                <Card key={index} className="text-center hover:shadow-lg transition-shadow">
+                <Card key={index} className="text-center hover:shadow-lg transition-shadow bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 theme-transition">
                   <CardHeader>
                     <div className="mx-auto mb-4">
                       {feature.icon}
                     </div>
-                    <CardTitle className="text-xl">{feature.title}</CardTitle>
+                    <CardTitle className="text-xl text-gray-900 dark:text-white">{feature.title}</CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <CardDescription className="text-gray-600">
+                    <CardDescription className="text-gray-600 dark:text-gray-300">
                       {feature.description}
                     </CardDescription>
                   </CardContent>
@@ -205,30 +213,30 @@ const Landing = () => {
         </section>
 
         {/* Testimonials Section */}
-        <section className="py-20 bg-gradient-to-br from-orange-50 to-yellow-50">
+        <section className="py-20 bg-gradient-to-br from-orange-50 to-yellow-50 dark:from-gray-800 dark:to-gray-700 theme-transition">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="text-center mb-16">
-              <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
+              <h2 className="text-3xl md:text-4xl font-bold text-gray-900 dark:text-white mb-4 theme-transition">
                 What Our Users Say
               </h2>
-              <p className="text-xl text-gray-600">
+              <p className="text-xl text-gray-600 dark:text-gray-300 theme-transition">
                 Join thousands of satisfied users who've transformed their financial lives
               </p>
             </div>
             
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
               {testimonials.map((testimonial, index) => (
-                <Card key={index} className="hover:shadow-lg transition-shadow">
+                <Card key={index} className="hover:shadow-lg transition-shadow bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 theme-transition">
                   <CardContent className="p-6">
                     <div className="flex mb-4">
                       {[...Array(testimonial.rating)].map((_, i) => (
                         <Star key={i} className="h-5 w-5 text-yellow-400 fill-current" />
                       ))}
                     </div>
-                    <p className="text-gray-600 mb-4 italic">"{testimonial.content}"</p>
+                    <p className="text-gray-600 dark:text-gray-300 mb-4 italic">"{testimonial.content}"</p>
                     <div>
-                      <div className="font-semibold text-gray-900">{testimonial.name}</div>
-                      <div className="text-sm text-gray-500">{testimonial.role}</div>
+                      <div className="font-semibold text-gray-900 dark:text-white">{testimonial.name}</div>
+                      <div className="text-sm text-gray-500 dark:text-gray-400">{testimonial.role}</div>
                     </div>
                   </CardContent>
                 </Card>
@@ -238,14 +246,14 @@ const Landing = () => {
         </section>
 
         {/* About Us Section */}
-        <section className="py-20 bg-white">
+        <section className="py-20 bg-white dark:bg-gray-900 theme-transition">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
               <div>
-                <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-6">
+                <h2 className="text-3xl md:text-4xl font-bold text-gray-900 dark:text-white mb-6 theme-transition">
                   About Smart Spend
                 </h2>
-                <p className="text-lg text-gray-600 mb-6">
+                <p className="text-lg text-gray-600 dark:text-gray-300 mb-6 theme-transition">
                   Smart Spend was born from a simple observation: existing budgeting apps don't understand 
                   the unique financial landscape of India. From managing family expenses to planning for 
                   festivals, we built Smart Spend to be your perfect financial companion.
@@ -253,15 +261,15 @@ const Landing = () => {
                 <div className="space-y-4">
                   <div className="flex items-center">
                     <CheckCircle className="h-6 w-6 text-green-500 mr-3" />
-                    <span className="text-gray-700">AI-powered insights tailored for Indian spending patterns</span>
+                    <span className="text-gray-700 dark:text-gray-300">AI-powered insights tailored for Indian spending patterns</span>
                   </div>
                   <div className="flex items-center">
                     <CheckCircle className="h-6 w-6 text-green-500 mr-3" />
-                    <span className="text-gray-700">Multi-language support for diverse users</span>
+                    <span className="text-gray-700 dark:text-gray-300">Multi-language support for diverse users</span>
                   </div>
                   <div className="flex items-center">
                     <CheckCircle className="h-6 w-6 text-green-500 mr-3" />
-                    <span className="text-gray-700">Built with privacy and security as top priorities</span>
+                    <span className="text-gray-700 dark:text-gray-300">Built with privacy and security as top priorities</span>
                   </div>
                 </div>
               </div>

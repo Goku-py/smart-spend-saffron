@@ -1,17 +1,16 @@
 import { useLocation, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Home, Plus, Target, BarChart, Bell, User, Moon, Sun } from "lucide-react";
+import { Home, Plus, Target, BarChart, Bell, User } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { useNotifications } from "../contexts/NotificationContext";
-import { useTheme } from "../contexts/ThemeContext";
+import ThemeToggle from "./ThemeToggle";
 
 const MobileNav = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const { t } = useTranslation();
   const { unreadCount } = useNotifications();
-  const { theme, toggleTheme } = useTheme();
 
   const navItems = [
     { path: "/dashboard", label: "Home", icon: Home },
@@ -51,19 +50,12 @@ const MobileNav = () => {
           );
         })}
         
-        {/* Theme Toggle for Mobile */}
-        <Button
+        {/* Theme Toggle for Mobile - Compact version */}
+        <ThemeToggle 
           variant="ghost"
-          onClick={toggleTheme}
+          size="icon"
           className="flex flex-col items-center py-2 px-3 text-muted-foreground"
-        >
-          {theme === 'light' ? (
-            <Moon className="h-5 w-5 mb-1" />
-          ) : (
-            <Sun className="h-5 w-5 mb-1" />
-          )}
-          <span className="text-xs">Theme</span>
-        </Button>
+        />
       </div>
     </div>
   );

@@ -21,7 +21,7 @@ const Layout = ({ children }: LayoutProps) => {
       
       {/* Main Content */}
       <div className="md:pl-64">
-        {/* Top Bar with Notification Center */}
+        {/* Top Bar with Theme Toggle and Notification Center */}
         <div className="bg-background border-b border-border px-4 py-3 md:px-6 theme-transition">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-4">
@@ -31,10 +31,13 @@ const Layout = ({ children }: LayoutProps) => {
             </div>
             
             <div className="flex items-center space-x-4">
-              {/* Desktop Theme Toggle */}
-              <div className="hidden md:block">
-                <ThemeToggle />
-              </div>
+              {/* Theme Toggle - Prominently placed */}
+              <ThemeToggle 
+                size="default"
+                variant="outline"
+                className="border-2 hover:bg-accent hover:text-accent-foreground"
+                showLabel={false}
+              />
               
               <NotificationCenter />
               
