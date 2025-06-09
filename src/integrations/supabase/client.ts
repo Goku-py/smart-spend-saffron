@@ -2,17 +2,22 @@
 import { createClient } from '@supabase/supabase-js';
 import type { Database } from './types';
 
-// Use environment variables or fallback to demo values
-const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || "https://rvlszwechlzgfbswwlnq.supabase.co";
-const SUPABASE_PUBLISHABLE_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY || "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJ2bHN6d2VjaGx6Z2Zic3d3bG5xIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDg4NzAwNjUsImV4cCI6MjA2NDQ0NjA2NX0.5X0iSaGIq0haDnnR7cE-letveR04cESlheC-BqdkPxA";
+// Use environment variables - no hardcoded fallbacks for production
+const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
+const SUPABASE_PUBLISHABLE_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
-// Import the supabase client like this:
-// import { supabase } from "@/integrations/supabase/client";
+// Only create Supabase client if both URL and key are provided
+export const supabase = SUPABASE_URL && SUPABASE_PUBLISHABLE_KEY 
+  ? createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
+      auth: {
+        autoRefreshToken: true,
+        persistSession: true,
+        detectSessionInUrl: true
+      }
+    })
+  : null;
 
-export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
-  auth: {
-    autoRefreshToken: true,
-    persistSession: true,
-    detectSessionInUrl: true
-  }
-});
+// Helper function to check if Supabase is properly configured
+export const isSupabaseConfigured = () => {
+  return !!(SUPABASE_URL && SUPABASE_PUBLISHABLE_KEY);
+};

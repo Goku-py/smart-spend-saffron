@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { User, onAuthStateChanged } from 'firebase/auth';
 import { auth, isFirebaseConfigured } from '../lib/firebase';
-import { supabase } from '../integrations/supabase/client';
+import { supabase, isSupabaseConfigured } from '../integrations/supabase/client';
 
 interface AuthUser {
   id: string;
@@ -42,8 +42,10 @@ export const useAuth = () => {
                 provider: 'firebase'
               };
               
-              // Sync with Supabase
-              await syncWithSupabase(authUser);
+              // Sync with Supabase if configured
+              if (isSupabaseConfigured()) {
+                await syncWithSupabase(authUser);
+              }
               
               setAuthState({
                 user: authUser,
@@ -67,9 +69,18 @@ export const useAuth = () => {
 
     const checkSupabaseSession = async () => {
       try {
+        if (!isSupabaseConfigured() || !supabase) {
+          await checkDemoSession();
+          return;
+        }
+
         const { data: { session }, error } = await supabase.auth.getSession();
         
-        if (error) throw error;
+        if (error) {
+          console.warn('Supabase session check error:', error);
+          await checkDemoSession();
+          return;
+        }
         
         if (session?.user) {
           const authUser: AuthUser = {
@@ -144,6 +155,10 @@ export const useAuth = () => {
 
     const syncWithSupabase = async (user: AuthUser) => {
       try {
+        if (!isSupabaseConfigured() || !supabase) {
+          return;
+        }
+
         // Check if user exists in Supabase
         const { data: profile } = await supabase
           .from('profiles')

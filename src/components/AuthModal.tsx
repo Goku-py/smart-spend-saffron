@@ -8,7 +8,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Eye, EyeOff, Loader2, AlertCircle } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { signInWithGoogle, signInWithEmail, signUpWithEmail, resetPassword, isFirebaseConfigured } from "../lib/firebase";
-import { supabase } from "../integrations/supabase/client";
+import { supabase, isSupabaseConfigured } from "../integrations/supabase/client";
 
 interface AuthModalProps {
   open: boolean;
@@ -51,6 +51,32 @@ const AuthModal = ({ open, onClose, onSuccess }: AuthModalProps) => {
       case 5: return { text: 'Strong', color: 'text-green-500' };
       default: return { text: '', color: '' };
     }
+  };
+
+  const activateDemoMode = (email: string) => {
+    const mockUser = {
+      id: 'demo-user-' + Date.now(),
+      email: email,
+      user_metadata: { full_name: email.split('@')[0] },
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    };
+    
+    const mockSession = {
+      user: mockUser,
+      timestamp: Date.now()
+    };
+    
+    localStorage.setItem('demo_user', JSON.stringify(mockUser));
+    localStorage.setItem('demo_session', JSON.stringify(mockSession));
+    
+    toast({
+      title: "Demo Mode Activated",
+      description: "You're now signed in using demo mode for testing.",
+    });
+    
+    onSuccess();
+    onClose();
   };
 
   const handleGoogleSignIn = async () => {
@@ -148,43 +174,53 @@ const AuthModal = ({ open, onClose, onSuccess }: AuthModalProps) => {
           }
         }
 
-        // Supabase fallback
-        const { data, error } = await supabase.auth.signUp({
-          email,
-          password,
-          options: {
-            data: {
-              full_name: fullName,
-            }
-          }
-        });
-
-        if (error) {
-          if (error.message.includes('User already registered')) {
-            toast({
-              title: "Account Already Exists",
-              description: "An account with this email already exists. Please sign in instead.",
-              variant: "destructive",
+        // Try Supabase if configured
+        if (isSupabaseConfigured() && supabase) {
+          try {
+            const { data, error } = await supabase.auth.signUp({
+              email,
+              password,
+              options: {
+                data: {
+                  full_name: fullName,
+                }
+              }
             });
-            setMode('signin');
+
+            if (error) {
+              if (error.message.includes('User already registered')) {
+                toast({
+                  title: "Account Already Exists",
+                  description: "An account with this email already exists. Please sign in instead.",
+                  variant: "destructive",
+                });
+                setMode('signin');
+                return;
+              }
+              throw error;
+            }
+
+            if (data.user && !data.session) {
+              toast({
+                title: "Check Your Email",
+                description: "We've sent you a confirmation link to complete your registration.",
+              });
+            } else if (data.user && data.session) {
+              toast({
+                title: "Account Created! 🎉",
+                description: "Welcome to Smart Spend! You're now signed in.",
+              });
+              onSuccess();
+              onClose();
+            }
             return;
+          } catch (supabaseError: any) {
+            console.warn('Supabase signup failed, activating demo mode:', supabaseError);
           }
-          throw error;
         }
 
-        if (data.user && !data.session) {
-          toast({
-            title: "Check Your Email",
-            description: "We've sent you a confirmation link to complete your registration.",
-          });
-        } else if (data.user && data.session) {
-          toast({
-            title: "Account Created! 🎉",
-            description: "Welcome to Smart Spend! You're now signed in.",
-          });
-          onSuccess();
-          onClose();
-        }
+        // Fallback to demo mode for signup
+        activateDemoMode(email);
 
       } else if (mode === 'signin') {
         // Try Firebase first if configured
@@ -206,59 +242,44 @@ const AuthModal = ({ open, onClose, onSuccess }: AuthModalProps) => {
           }
         }
 
-        // Supabase fallback
-        const { data, error } = await supabase.auth.signInWithPassword({
-          email,
-          password,
-        });
+        // Try Supabase if configured
+        if (isSupabaseConfigured() && supabase) {
+          try {
+            const { data, error } = await supabase.auth.signInWithPassword({
+              email,
+              password,
+            });
 
-        if (error) {
-          if (error.message.includes('Invalid login credentials')) {
-            // Try demo mode as final fallback
-            if (email && password.length >= 6) {
-              const mockUser = {
-                id: 'demo-user-' + Date.now(),
-                email: email,
-                user_metadata: { full_name: email.split('@')[0] },
-                created_at: new Date().toISOString(),
-                updated_at: new Date().toISOString(),
-              };
-              
-              const mockSession = {
-                user: mockUser,
-                timestamp: Date.now()
-              };
-              
-              localStorage.setItem('demo_user', JSON.stringify(mockUser));
-              localStorage.setItem('demo_session', JSON.stringify(mockSession));
-              
+            if (error) {
+              if (error.message.includes('Invalid login credentials')) {
+                console.warn('Supabase signin failed, activating demo mode:', error);
+                // Fall through to demo mode
+              } else {
+                throw error;
+              }
+            } else if (data.user) {
               toast({
-                title: "Demo Mode Activated",
-                description: "You're now signed in using demo mode for testing.",
+                title: "Welcome Back! 👋",
+                description: "You've been signed in successfully.",
               });
-              
               onSuccess();
               onClose();
               return;
             }
-            
-            toast({
-              title: "Invalid Credentials",
-              description: "The email or password you entered is incorrect. Please try again.",
-              variant: "destructive",
-            });
-            return;
+          } catch (supabaseError: any) {
+            console.warn('Supabase signin failed, activating demo mode:', supabaseError);
           }
-          throw error;
         }
 
-        if (data.user) {
+        // Fallback to demo mode for signin
+        if (email && password.length >= 6) {
+          activateDemoMode(email);
+        } else {
           toast({
-            title: "Welcome Back! 👋",
-            description: "You've been signed in successfully.",
+            title: "Authentication Failed",
+            description: "Unable to authenticate with any service. Please check your credentials or try demo mode.",
+            variant: "destructive",
           });
-          onSuccess();
-          onClose();
         }
       }
 
@@ -295,13 +316,20 @@ const AuthModal = ({ open, onClose, onSuccess }: AuthModalProps) => {
         if (error) {
           throw new Error(error);
         }
-      } else {
+      } else if (isSupabaseConfigured() && supabase) {
         // Supabase password reset
         const { error } = await supabase.auth.resetPasswordForEmail(email);
         
         if (error) {
           throw error;
         }
+      } else {
+        toast({
+          title: "Password Reset Unavailable",
+          description: "Password reset is not available in demo mode. Please use demo credentials.",
+          variant: "destructive",
+        });
+        return;
       }
 
       toast({
@@ -358,13 +386,13 @@ const AuthModal = ({ open, onClose, onSuccess }: AuthModalProps) => {
         </DialogHeader>
 
         <div className="space-y-6">
-          {/* Google OAuth Status Alert */}
-          {!isFirebaseConfigured() && mode !== 'reset' && (
-            <Alert className="border-orange-200 bg-orange-50">
-              <AlertCircle className="h-4 w-4 text-orange-600" />
-              <AlertDescription className="text-orange-800">
-                <strong>Google Sign-In Setup Required:</strong> Google authentication is not configured. 
-                Please use email/password authentication or contact support for Google OAuth setup.
+          {/* Service Status Alert */}
+          {(!isFirebaseConfigured() && !isSupabaseConfigured()) && mode !== 'reset' && (
+            <Alert className="border-blue-200 bg-blue-50">
+              <AlertCircle className="h-4 w-4 text-blue-600" />
+              <AlertDescription className="text-blue-800">
+                <strong>Demo Mode Available:</strong> Authentication services are not configured. 
+                You can still use the app in demo mode with any email and password (6+ characters).
               </AlertDescription>
             </Alert>
           )}
@@ -555,7 +583,12 @@ const AuthModal = ({ open, onClose, onSuccess }: AuthModalProps) => {
               Email: demo@smartspend.com<br />
               Password: password123
             </p>
-            <p className="text-xs mt-1 text-orange-600">Demo mode available if services are unavailable</p>
+            <p className="text-xs mt-1 text-orange-600">
+              {(!isFirebaseConfigured() && !isSupabaseConfigured()) 
+                ? 'Demo mode active - use any email and password (6+ chars)'
+                : 'Demo mode available if services are unavailable'
+              }
+            </p>
           </div>
         </div>
       </DialogContent>
