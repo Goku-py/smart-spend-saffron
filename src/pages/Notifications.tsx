@@ -1,27 +1,32 @@
-
+import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import Layout from "@/components/Layout";
-import { notifications } from "../data/mockData";
+import GoogleAuthTest from "@/components/GoogleAuthTest";
 import { useNotifications } from "../contexts/NotificationContext";
 import { useToast } from "@/hooks/use-toast";
-import { useState } from "react";
+import { Bell, Sparkles, Settings, TestTube, CheckCircle, AlertTriangle } from "lucide-react";
 
 const Notifications = () => {
-  const { markAsRead, dismissNotification } = useNotifications();
+  const { notifications, markAsRead, dismissNotification, addNotification } = useNotifications();
   const { toast } = useToast();
   const [notificationSettings, setNotificationSettings] = useState({
     budgetAlerts: true,
     billReminders: true,
     aiInsights: true,
-    weeklyReports: false
+    weeklyReports: false,
+    realTimeUpdates: true,
+    emailNotifications: false
   });
 
-  const urgentNotifications = notifications.filter(n => n.urgent);
-  const regularNotifications = notifications.filter(n => !n.urgent);
+  const urgentNotifications = notifications.filter(n => n.isUrgent && !n.isRead);
+  const aiInsights = notifications.filter(n => n.type === 'ai_insight');
+  const regularNotifications = notifications.filter(n => n.type !== 'ai_insight');
 
   const handleDismissNotification = (id: string) => {
     dismissNotification(id);
@@ -50,18 +55,50 @@ const Notifications = () => {
     });
   };
 
-  const handleReviewAction = () => {
+  const testNotification = (type: 'budget_alert' | 'ai_insight' | 'system') => {
+    const testNotifications = {
+      budget_alert: {
+        type: 'budget_alert' as const,
+        title: 'Test Budget Alert',
+        message: 'This is a test budget alert notification to verify the system is working.',
+        isUrgent: true,
+        icon: '⚠️',
+        actionUrl: '/budgets'
+      },
+      ai_insight: {
+        type: 'ai_insight' as const,
+        title: 'Test AI Insight',
+        message: 'This is a test AI insight to demonstrate the notification system capabilities.',
+        isUrgent: false,
+        icon: '💡'
+      },
+      system: {
+        type: 'system' as const,
+        title: 'Test System Notification',
+        message: 'This is a test system notification to verify delivery.',
+        isUrgent: false,
+        icon: '🔔'
+      }
+    };
+
+    addNotification(testNotifications[type]);
     toast({
-      title: "Review Action",
-      description: "Redirecting to budget review...",
+      title: "Test Notification Sent",
+      description: `${type.replace('_', ' ')} notification added`,
     });
   };
 
-  const handleSetBudgetAction = () => {
-    toast({
-      title: "Set Budget",
-      description: "Redirecting to budget creation...",
-    });
+  const formatTimeAgo = (timestamp: Date) => {
+    const now = new Date();
+    const diff = now.getTime() - timestamp.getTime();
+    const minutes = Math.floor(diff / 60000);
+    const hours = Math.floor(diff / 3600000);
+    const days = Math.floor(diff / 86400000);
+
+    if (minutes < 1) return 'Just now';
+    if (minutes < 60) return `${minutes}m ago`;
+    if (hours < 24) return `${hours}h ago`;
+    return `${days}d ago`;
   };
 
   return (
@@ -69,180 +106,296 @@ const Notifications = () => {
       <div className="space-y-6">
         {/* Header */}
         <div>
-          <h1 className="text-2xl font-bold text-gray-800">Notifications</h1>
-          <p className="text-gray-600">Stay updated with your spending alerts and insights</p>
+          <h1 className="text-2xl font-bold text-gray-800">Notifications & Settings</h1>
+          <p className="text-gray-600">Manage your alerts, insights, and system preferences</p>
         </div>
 
-        {/* Notification Settings */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Notification Settings</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <Label htmlFor="budget-alerts">Budget Alerts</Label>
-                <Switch 
-                  id="budget-alerts" 
-                  checked={notificationSettings.budgetAlerts}
-                  onCheckedChange={(checked) => handleSettingChange('budgetAlerts', checked)}
-                />
-              </div>
-              <div className="flex items-center justify-between">
-                <Label htmlFor="bill-reminders">Bill Reminders</Label>
-                <Switch 
-                  id="bill-reminders" 
-                  checked={notificationSettings.billReminders}
-                  onCheckedChange={(checked) => handleSettingChange('billReminders', checked)}
-                />
-              </div>
-              <div className="flex items-center justify-between">
-                <Label htmlFor="ai-insights">AI Insights</Label>
-                <Switch 
-                  id="ai-insights" 
-                  checked={notificationSettings.aiInsights}
-                  onCheckedChange={(checked) => handleSettingChange('aiInsights', checked)}
-                />
-              </div>
-              <div className="flex items-center justify-between">
-                <Label htmlFor="weekly-summary">Weekly Summary</Label>
-                <Switch 
-                  id="weekly-summary" 
-                  checked={notificationSettings.weeklyReports}
-                  onCheckedChange={(checked) => handleSettingChange('weeklyReports', checked)}
-                />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+        <Tabs defaultValue="notifications" className="space-y-6">
+          <TabsList className="grid w-full grid-cols-3">
+            <TabsTrigger value="notifications" className="flex items-center space-x-2">
+              <Bell className="h-4 w-4" />
+              <span>Notifications</span>
+            </TabsTrigger>
+            <TabsTrigger value="settings" className="flex items-center space-x-2">
+              <Settings className="h-4 w-4" />
+              <span>Settings</span>
+            </TabsTrigger>
+            <TabsTrigger value="testing" className="flex items-center space-x-2">
+              <TestTube className="h-4 w-4" />
+              <span>Testing</span>
+            </TabsTrigger>
+          </TabsList>
 
-        {/* Urgent Notifications */}
-        {urgentNotifications.length > 0 && (
-          <Card className="border-red-200 bg-red-50">
-            <CardHeader>
-              <CardTitle className="text-red-700 flex items-center">
-                🚨 Urgent Alerts
-                <Badge variant="destructive" className="ml-2">
-                  {urgentNotifications.length}
-                </Badge>
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-3">
-                {urgentNotifications.map((notification) => (
-                  <div key={notification.id} className="p-4 bg-white rounded-lg border border-red-200">
-                    <div className="flex items-start justify-between">
-                      <div className="flex-1">
-                        <div className="flex items-center space-x-2">
-                          <span className="text-xl">
-                            {notification.type === 'alert' ? '⚠️' : 
-                             notification.type === 'bill' ? '📋' : '💡'}
-                          </span>
-                          <h4 className="font-medium text-gray-800">{notification.title}</h4>
+          {/* Notifications Tab */}
+          <TabsContent value="notifications" className="space-y-6">
+            {/* Urgent Notifications */}
+            {urgentNotifications.length > 0 && (
+              <Card className="border-red-200 bg-red-50">
+                <CardHeader>
+                  <CardTitle className="text-red-700 flex items-center">
+                    <AlertTriangle className="h-5 w-5 mr-2" />
+                    Urgent Alerts
+                    <Badge variant="destructive" className="ml-2">
+                      {urgentNotifications.length}
+                    </Badge>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-3">
+                    {urgentNotifications.map((notification) => (
+                      <div key={notification.id} className="p-4 bg-white rounded-lg border border-red-200">
+                        <div className="flex items-start justify-between">
+                          <div className="flex-1">
+                            <div className="flex items-center space-x-2">
+                              <span className="text-xl">{notification.icon}</span>
+                              <h4 className="font-medium text-gray-800">{notification.title}</h4>
+                            </div>
+                            <p className="text-sm text-gray-600 mt-1">{notification.message}</p>
+                            <p className="text-xs text-gray-500 mt-2">{formatTimeAgo(notification.timestamp)}</p>
+                          </div>
+                          <div className="flex space-x-2">
+                            <Button 
+                              variant="outline" 
+                              size="sm"
+                              onClick={() => handleMarkAsRead(notification.id)}
+                            >
+                              <CheckCircle className="h-4 w-4 mr-1" />
+                              Mark Read
+                            </Button>
+                            <Button 
+                              variant="outline" 
+                              size="sm"
+                              onClick={() => handleDismissNotification(notification.id)}
+                            >
+                              Dismiss
+                            </Button>
+                          </div>
                         </div>
-                        <p className="text-sm text-gray-600 mt-1">{notification.message}</p>
-                        <p className="text-xs text-gray-500 mt-2">{notification.time}</p>
                       </div>
-                      <Button 
-                        variant="outline" 
-                        size="sm"
-                        onClick={() => handleDismissNotification(notification.id.toString())}
-                      >
-                        Dismiss
-                      </Button>
-                    </div>
+                    ))}
                   </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-        )}
+                </CardContent>
+              </Card>
+            )}
 
-        {/* Regular Notifications */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Recent Notifications</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-3">
-              {regularNotifications.map((notification) => (
-                <div key={notification.id} className="p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
-                  <div className="flex items-start justify-between">
-                    <div className="flex items-start space-x-3">
-                      <div className="text-xl">
-                        {notification.type === 'alert' ? '⚠️' : 
-                         notification.type === 'bill' ? '📋' : '💡'}
-                      </div>
-                      <div className="flex-1">
-                        <div className="flex items-center space-x-2">
-                          <h4 className="font-medium text-gray-800">{notification.title}</h4>
-                          <Badge variant={notification.type === 'insight' ? 'default' : 'secondary'}>
-                            {notification.type}
-                          </Badge>
+            {/* AI Insights */}
+            <Card className="border-purple-200 bg-purple-50">
+              <CardHeader>
+                <CardTitle className="text-purple-700 flex items-center">
+                  <Sparkles className="h-5 w-5 mr-2" />
+                  AI Insights
+                  <Badge className="ml-2 bg-purple-100 text-purple-800">
+                    {aiInsights.length}
+                  </Badge>
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-3">
+                  {aiInsights.slice(0, 3).map((notification) => (
+                    <div key={notification.id} className="p-4 bg-white rounded-lg border border-purple-200">
+                      <div className="flex items-start justify-between">
+                        <div className="flex-1">
+                          <div className="flex items-center space-x-2">
+                            <span className="text-xl">{notification.icon}</span>
+                            <h4 className="font-medium text-gray-800">{notification.title}</h4>
+                            {!notification.isRead && (
+                              <div className="w-2 h-2 bg-purple-500 rounded-full" />
+                            )}
+                          </div>
+                          <p className="text-sm text-gray-600 mt-1">{notification.message}</p>
+                          <p className="text-xs text-gray-500 mt-2">{formatTimeAgo(notification.timestamp)}</p>
                         </div>
-                        <p className="text-sm text-gray-600 mt-1">{notification.message}</p>
-                        <p className="text-xs text-gray-500 mt-2">{notification.time}</p>
+                        <div className="flex space-x-2">
+                          {!notification.isRead && (
+                            <Button 
+                              variant="outline" 
+                              size="sm"
+                              onClick={() => handleMarkAsRead(notification.id)}
+                            >
+                              Mark Read
+                            </Button>
+                          )}
+                          <Button 
+                            variant="ghost" 
+                            size="sm"
+                            onClick={() => handleDismissNotification(notification.id)}
+                          >
+                            ✕
+                          </Button>
+                        </div>
                       </div>
                     </div>
-                    <Button 
-                      variant="ghost" 
-                      size="sm"
-                      onClick={() => handleDismissNotification(notification.id.toString())}
-                    >
-                      ✕
-                    </Button>
-                  </div>
+                  ))}
                 </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
+              </CardContent>
+            </Card>
 
-        {/* Action Items */}
-        <Card>
-          <CardHeader>
-            <CardTitle>💡 Recommended Actions</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-3">
-              <div className="p-4 bg-blue-50 rounded-lg border-l-4 border-blue-400">
-                <div className="flex justify-between items-start">
-                  <div>
-                    <h4 className="font-medium text-blue-800">Review Food Budget</h4>
-                    <p className="text-sm text-blue-700 mt-1">
-                      Your food spending has increased by 23% this month
-                    </p>
-                  </div>
+            {/* Regular Notifications */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Recent Notifications</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-3">
+                  {regularNotifications.slice(0, 5).map((notification) => (
+                    <div key={notification.id} className="p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
+                      <div className="flex items-start justify-between">
+                        <div className="flex items-start space-x-3">
+                          <div className="text-xl">{notification.icon}</div>
+                          <div className="flex-1">
+                            <div className="flex items-center space-x-2">
+                              <h4 className="font-medium text-gray-800">{notification.title}</h4>
+                              {!notification.isRead && (
+                                <div className="w-2 h-2 bg-orange-500 rounded-full" />
+                              )}
+                              {notification.isUrgent && (
+                                <Badge variant="destructive" className="text-xs">
+                                  Urgent
+                                </Badge>
+                              )}
+                            </div>
+                            <p className="text-sm text-gray-600 mt-1">{notification.message}</p>
+                            <p className="text-xs text-gray-500 mt-2">{formatTimeAgo(notification.timestamp)}</p>
+                          </div>
+                        </div>
+                        <Button 
+                          variant="ghost" 
+                          size="sm"
+                          onClick={() => handleDismissNotification(notification.id)}
+                        >
+                          ✕
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* Settings Tab */}
+          <TabsContent value="settings" className="space-y-6">
+            <Card>
+              <CardHeader>
+                <CardTitle>Notification Preferences</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="budget-alerts">Budget Alerts</Label>
+                  <Switch 
+                    id="budget-alerts" 
+                    checked={notificationSettings.budgetAlerts}
+                    onCheckedChange={(checked) => handleSettingChange('budgetAlerts', checked)}
+                  />
+                </div>
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="bill-reminders">Bill Reminders</Label>
+                  <Switch 
+                    id="bill-reminders" 
+                    checked={notificationSettings.billReminders}
+                    onCheckedChange={(checked) => handleSettingChange('billReminders', checked)}
+                  />
+                </div>
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="ai-insights">AI Insights</Label>
+                  <Switch 
+                    id="ai-insights" 
+                    checked={notificationSettings.aiInsights}
+                    onCheckedChange={(checked) => handleSettingChange('aiInsights', checked)}
+                  />
+                </div>
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="weekly-reports">Weekly Reports</Label>
+                  <Switch 
+                    id="weekly-reports" 
+                    checked={notificationSettings.weeklyReports}
+                    onCheckedChange={(checked) => handleSettingChange('weeklyReports', checked)}
+                  />
+                </div>
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="real-time">Real-time Updates</Label>
+                  <Switch 
+                    id="real-time" 
+                    checked={notificationSettings.realTimeUpdates}
+                    onCheckedChange={(checked) => handleSettingChange('realTimeUpdates', checked)}
+                  />
+                </div>
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="email-notifications">Email Notifications</Label>
+                  <Switch 
+                    id="email-notifications" 
+                    checked={notificationSettings.emailNotifications}
+                    onCheckedChange={(checked) => handleSettingChange('emailNotifications', checked)}
+                  />
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* Testing Tab */}
+          <TabsContent value="testing" className="space-y-6">
+            {/* Google Auth Testing */}
+            <GoogleAuthTest />
+
+            {/* Notification Testing */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Notification System Testing</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <Alert>
+                  <AlertTriangle className="h-4 w-4" />
+                  <AlertDescription>
+                    Use these buttons to test different types of notifications and verify the system is working correctly.
+                  </AlertDescription>
+                </Alert>
+
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <Button 
-                    variant="outline" 
-                    size="sm"
-                    onClick={handleReviewAction}
+                    onClick={() => testNotification('budget_alert')}
+                    className="bg-red-500 hover:bg-red-600 text-white"
                   >
-                    Review
+                    Test Budget Alert
+                  </Button>
+                  <Button 
+                    onClick={() => testNotification('ai_insight')}
+                    className="bg-purple-500 hover:bg-purple-600 text-white"
+                  >
+                    Test AI Insight
+                  </Button>
+                  <Button 
+                    onClick={() => testNotification('system')}
+                    className="bg-blue-500 hover:bg-blue-600 text-white"
+                  >
+                    Test System Notification
                   </Button>
                 </div>
-              </div>
-              
-              <div className="p-4 bg-green-50 rounded-lg border-l-4 border-green-400">
-                <div className="flex justify-between items-start">
-                  <div>
-                    <h4 className="font-medium text-green-800">Set Festival Budget</h4>
-                    <p className="text-sm text-green-700 mt-1">
-                      Diwali is 45 days away. Start planning your festival expenses.
-                    </p>
+
+                <div className="mt-6 p-4 bg-gray-50 rounded-lg">
+                  <h4 className="font-medium mb-2">System Status</h4>
+                  <div className="space-y-2 text-sm">
+                    <div className="flex items-center justify-between">
+                      <span>Notification Center:</span>
+                      <Badge className="bg-green-100 text-green-800">Active</Badge>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span>Real-time Updates:</span>
+                      <Badge className="bg-green-100 text-green-800">Enabled</Badge>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span>Bubble Animations:</span>
+                      <Badge className="bg-green-100 text-green-800">Working</Badge>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span>Auto-dismiss:</span>
+                      <Badge className="bg-green-100 text-green-800">30s Timer</Badge>
+                    </div>
                   </div>
-                  <Button 
-                    variant="outline" 
-                    size="sm"
-                    onClick={handleSetBudgetAction}
-                  >
-                    Set Budget
-                  </Button>
                 </div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+              </CardContent>
+            </Card>
+          </TabsContent>
+        </Tabs>
       </div>
     </Layout>
   );
