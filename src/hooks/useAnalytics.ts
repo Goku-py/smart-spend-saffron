@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useAuth } from '../App';
+import { useAuth } from './useAuth';
 
 interface CategoryData {
   name: string;

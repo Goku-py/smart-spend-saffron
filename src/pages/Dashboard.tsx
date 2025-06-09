@@ -7,7 +7,7 @@ import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import Layout from "@/components/Layout";
 import DemoModeIndicator from "@/components/DemoModeIndicator";
-import { useAuth } from "../App";
+import { useAuth } from "../hooks/useAuth";
 import { useCurrency } from "../contexts/CurrencyContext";
 import { useNotifications } from "../contexts/NotificationContext";
 import { sampleExpenses, budgetData } from "../data/mockData";
