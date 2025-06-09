@@ -10,6 +10,7 @@ import NetworkStatus from "./components/NetworkStatus";
 import Home from "./pages/Home";
 import Landing from "./pages/Landing";
 import Auth from "./pages/Auth";
+import SecureAuthPage from "./pages/SecureAuth";
 import Dashboard from "./pages/Dashboard";
 import Expenses from "./pages/Expenses";
 import Budgets from "./pages/Budgets";
@@ -22,6 +23,7 @@ import PrivacyPolicy from "./pages/PrivacyPolicy";
 import TermsOfService from "./pages/TermsOfService";
 import HelpCenter from "./pages/HelpCenter";
 import { useAuth } from "./hooks/useAuth";
+import { useSecureAuth } from "./hooks/useSecureAuth";
 import './i18n';
 
 const queryClient = new QueryClient({
@@ -36,8 +38,9 @@ const queryClient = new QueryClient({
 
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const { user, loading } = useAuth();
+  const { isAuthenticated, loading: secureLoading } = useSecureAuth();
 
-  if (loading) {
+  if (loading || secureLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="text-center">
@@ -48,7 +51,8 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
     );
   }
 
-  if (!user) {
+  // Check both auth systems - regular auth or secure auth
+  if (!user && !isAuthenticated) {
     return <Navigate to="/auth" replace />;
   }
 
@@ -69,6 +73,7 @@ function App() {
                     <Route path="/" element={<Landing />} />
                     <Route path="/home" element={<Home />} />
                     <Route path="/auth" element={<Auth />} />
+                    <Route path="/secure-auth" element={<SecureAuthPage />} />
                     
                     {/* Smart Spend Routes */}
                     <Route path="/dashboard" element={
