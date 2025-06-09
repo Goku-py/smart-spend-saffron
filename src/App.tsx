@@ -76,12 +76,16 @@ const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
         // Handle successful sign in
         if (event === 'SIGNED_IN' && session) {
-          console.log('User signed in successfully');
+          console.log('User signed in successfully, redirecting to dashboard');
+          // Force a page refresh to ensure proper routing
+          window.location.href = '/dashboard';
         }
 
         // Handle sign out
         if (event === 'SIGNED_OUT') {
           console.log('User signed out');
+          setUser(null);
+          setSession(null);
         }
       }
     );
@@ -118,6 +122,11 @@ const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       const { error } = await supabase.auth.signOut();
       if (error) {
         console.error('Logout error:', error);
+      } else {
+        // Clear local state and redirect to landing page
+        setUser(null);
+        setSession(null);
+        window.location.href = '/';
       }
     } catch (error) {
       console.error('Logout error:', error);

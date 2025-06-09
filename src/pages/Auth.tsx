@@ -124,7 +124,7 @@ const Auth = () => {
             title: "Account Created!",
             description: "Welcome! You're now signed in.",
           });
-          navigate('/dashboard', { replace: true });
+          // The auth state change will handle the redirect
         }
       } else {
         console.log('Attempting to sign in with:', { email });
@@ -146,7 +146,7 @@ const Auth = () => {
             title: "Welcome back!",
             description: "You've been signed in successfully.",
           });
-          navigate('/dashboard', { replace: true });
+          // The auth state change will handle the redirect
         }
       }
     } catch (error: any) {
@@ -325,9 +325,8 @@ const Auth = () => {
 
             {/* Demo credentials for testing */}
             <div className="text-center text-sm text-gray-500 border-t pt-4">
-              <p className="mb-2">For testing purposes, you can use:</p>
-              <p className="font-mono text-xs">Email: demo@smartspend.com</p>
-              <p className="font-mono text-xs">Password: demo123</p>
+              <p className="mb-2">For testing purposes, you can create a new account or use:</p>
+              <p className="font-mono text-xs">Any valid email and password (6+ characters)</p>
             </div>
           </CardContent>
         </Card>
