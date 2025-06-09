@@ -249,7 +249,7 @@ const Reports = () => {
           <CardContent>
             <div className="h-96">
               {activeChart === 'category' && (
-                <ResponsiveContainer width="100%" height="100%">
+                <ResponsiveContainer width="100%\" height="100%">
                   <PieChart>
                     <Pie
                       data={analyticsData.categorySpending}
