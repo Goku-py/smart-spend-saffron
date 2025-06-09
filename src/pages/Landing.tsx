@@ -3,7 +3,6 @@ import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { 
   Shield, 
@@ -20,36 +19,9 @@ import {
 const Landing = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
-  const [isLoading, setIsLoading] = useState(false);
 
-  const handleGoogleSignIn = async () => {
-    setIsLoading(true);
-    try {
-      console.log('Starting Google OAuth sign in...');
-      
-      const { data, error } = await supabase.auth.signInWithOAuth({
-        provider: 'google',
-        options: {
-          redirectTo: `${window.location.origin}/dashboard`
-        }
-      });
-      
-      console.log('Google OAuth response:', { data, error });
-      
-      if (error) {
-        console.error('Google OAuth error details:', error);
-        throw error;
-      }
-    } catch (error: any) {
-      console.error('Google auth failed:', error);
-      toast({
-        title: "Google Sign In Error",
-        description: "Please configure Google OAuth in your Supabase dashboard first, or try email/password sign in.",
-        variant: "destructive",
-      });
-    } finally {
-      setIsLoading(false);
-    }
+  const handleGetStarted = () => {
+    navigate('/auth');
   };
 
   const features = [
@@ -114,11 +86,10 @@ const Landing = () => {
                 Sign In
               </Button>
               <Button 
-                onClick={handleGoogleSignIn}
-                disabled={isLoading}
+                onClick={handleGetStarted}
                 className="bg-gradient-to-r from-orange-500 to-yellow-500 text-white"
               >
-                {isLoading ? "Loading..." : "Continue with Google"}
+                Get Started
               </Button>
             </div>
           </div>
@@ -147,12 +118,11 @@ const Landing = () => {
           <div className="flex flex-col sm:flex-row gap-4 justify-center mb-12">
             <Button 
               size="lg" 
-              onClick={handleGoogleSignIn}
-              disabled={isLoading}
+              onClick={handleGetStarted}
               className="bg-gradient-to-r from-orange-500 to-yellow-500 text-white text-lg px-8 py-4"
             >
               <ArrowRight className="mr-2 h-5 w-5" />
-              {isLoading ? "Loading..." : "Continue with Google"}
+              Get Started
             </Button>
             <Button size="lg" variant="outline" className="text-lg px-8 py-4">
               <Play className="mr-2 h-5 w-5" />
@@ -297,11 +267,10 @@ const Landing = () => {
           </p>
           <Button 
             size="lg" 
-            onClick={handleGoogleSignIn}
-            disabled={isLoading}
+            onClick={handleGetStarted}
             className="bg-white text-orange-600 hover:bg-gray-50 text-lg px-8 py-4"
           >
-            {isLoading ? "Loading..." : "Continue with Google"}
+            Get Started Now
           </Button>
           <p className="text-orange-100 mt-4 text-sm">
             No credit card required • Free forever • Start saving in 2 minutes
