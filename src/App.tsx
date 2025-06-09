@@ -17,6 +17,9 @@ import Notifications from "./pages/Notifications";
 import Profile from "./pages/Profile";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
+import PrivacyPolicy from "./pages/PrivacyPolicy";
+import TermsOfService from "./pages/TermsOfService";
+import HelpCenter from "./pages/HelpCenter";
 import { createContext, useContext, useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import type { User, Session } from "@supabase/supabase-js";
@@ -314,6 +317,11 @@ function App() {
                         <Profile />
                       </ProtectedRoute>
                     } />
+
+                    {/* Legal and Support Pages */}
+                    <Route path="/privacy" element={<PrivacyPolicy />} />
+                    <Route path="/terms" element={<TermsOfService />} />
+                    <Route path="/help" element={<HelpCenter />} />
 
                     <Route path="/index" element={<Index />} />
                     <Route path="*" element={<NotFound />} />

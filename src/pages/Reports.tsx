@@ -6,6 +6,7 @@ import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, CartesianGrid, Toolti
 import Layout from "@/components/Layout";
 import { useAnalytics } from "../hooks/useAnalytics";
 import { useCurrency } from "../contexts/CurrencyContext";
+import { useTranslation } from "react-i18next";
 import { RefreshCw, Download, TrendingUp, TrendingDown } from "lucide-react";
 
 const Reports = () => {
@@ -13,6 +14,7 @@ const Reports = () => {
   const [activeChart, setActiveChart] = useState('category');
   const { data: analyticsData, loading, error, refresh } = useAnalytics(selectedPeriod);
   const { formatCurrency } = useCurrency();
+  const { t } = useTranslation();
 
   const COLORS = ['#FF7518', '#138808', '#1E40AF', '#F59E0B', '#EF4444', '#8B5CF6', '#EC4899'];
 
@@ -93,7 +95,7 @@ const Reports = () => {
         {/* Header */}
         <div className="flex justify-between items-center">
           <div>
-            <h1 className="text-2xl font-bold text-gray-800">Reports & Analytics</h1>
+            <h1 className="text-2xl font-bold text-gray-800">{t('reports')} & Analytics</h1>
             <p className="text-gray-600">Analyze your spending patterns and trends</p>
           </div>
           <div className="flex space-x-2">
@@ -110,7 +112,7 @@ const Reports = () => {
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="month">This Month</SelectItem>
+                <SelectItem value="month">{t('thisMonth')}</SelectItem>
                 <SelectItem value="lastMonth">Last Month</SelectItem>
                 <SelectItem value="quarter">Last 3 Months</SelectItem>
                 <SelectItem value="year">This Year</SelectItem>
@@ -166,7 +168,7 @@ const Reports = () => {
 
           <Card className="bg-gradient-to-r from-purple-50 to-purple-100 border-purple-200">
             <CardHeader className="pb-3">
-              <CardTitle className="text-purple-700 text-sm font-medium">Categories</CardTitle>
+              <CardTitle className="text-purple-700 text-sm font-medium">{t('categories')}</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold text-purple-700">
@@ -206,7 +208,7 @@ const Reports = () => {
           <CardContent>
             <div className="h-80">
               {activeChart === 'category' ? (
-                <ResponsiveContainer width="100%\" height="100%">
+                <ResponsiveContainer width="100%" height="100%">
                   <PieChart>
                     <Pie
                       data={analyticsData.categorySpending}
@@ -254,7 +256,7 @@ const Reports = () => {
                       className="w-4 h-4 rounded-full"
                       style={{ backgroundColor: COLORS[index % COLORS.length] }}
                     />
-                    <span className="font-medium">{category.name}</span>
+                    <span className="font-medium">{t(category.name)}</span>
                   </div>
                   <div className="text-right">
                     <div className="font-semibold">{formatCurrency(category.value)}</div>
