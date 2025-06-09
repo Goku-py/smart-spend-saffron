@@ -1,46 +1,28 @@
 import React from 'react';
+import { Helmet as ReactHelmet } from 'react-helmet-async';
 
 interface HelmetProps {
   children: React.ReactNode;
 }
 
-// Simple Helmet-like component for meta tags
+// Enhanced Helmet component with better error handling and type safety
 export const Helmet: React.FC<HelmetProps> = ({ children }) => {
-  React.useEffect(() => {
-    const elements: HTMLElement[] = [];
-    
-    React.Children.forEach(children, (child) => {
-      if (React.isValidElement(child)) {
-        const { type, props } = child;
-        
-        if (type === 'title') {
-          document.title = props.children;
-        } else if (type === 'meta') {
-          const meta = document.createElement('meta');
-          Object.keys(props).forEach(key => {
-            meta.setAttribute(key, props[key]);
-          });
-          document.head.appendChild(meta);
-          elements.push(meta);
-        } else if (type === 'link') {
-          const link = document.createElement('link');
-          Object.keys(props).forEach(key => {
-            link.setAttribute(key, props[key]);
-          });
-          document.head.appendChild(link);
-          elements.push(link);
-        }
-      }
-    });
-    
-    return () => {
-      elements.forEach(element => {
-        if (element.parentNode) {
-          element.parentNode.removeChild(element);
-        }
-      });
-    };
-  }, [children]);
-  
-  return null;
+  // Validate children to ensure they are valid React elements
+  const validChildren = React.Children.toArray(children).filter(child => 
+    React.isValidElement(child)
+  );
+
+  if (validChildren.length === 0) {
+    console.warn('Helmet: No valid children provided');
+    return null;
+  }
+
+  return (
+    <ReactHelmet>
+      {validChildren}
+    </ReactHelmet>
+  );
 };
+
+// Export default for backward compatibility
+export default Helmet;

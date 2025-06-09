@@ -19,7 +19,7 @@ import {
 import { getFirestore, doc, setDoc, getDoc, updateDoc, serverTimestamp, connectFirestoreEmulator } from 'firebase/firestore';
 import { getAnalytics } from 'firebase/analytics';
 
-// Firebase configuration - these need to be set in your .env file
+// Enhanced Firebase configuration with better validation
 const firebaseConfig = {
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
   authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
@@ -30,45 +30,60 @@ const firebaseConfig = {
   measurementId: import.meta.env.VITE_FIREBASE_MEASUREMENT_ID
 };
 
-// Enhanced configuration validation
-const validateFirebaseConfig = () => {
+// Enhanced configuration validation with better error handling
+const validateFirebaseConfig = (): { isValid: boolean; missingFields: string[]; errors: string[] } => {
   const requiredFields = [
     'apiKey', 'authDomain', 'projectId', 'storageBucket', 
     'messagingSenderId', 'appId'
   ];
   
+  const errors: string[] = [];
   const missingFields = requiredFields.filter(field => {
     const value = firebaseConfig[field as keyof typeof firebaseConfig];
-    return !value || value === "demo-api-key" || value === "your_project_id";
+    if (!value || value === "demo-api-key" || value === "your_project_id" || value === "") {
+      return true;
+    }
+    return false;
   });
   
-  if (missingFields.length > 0) {
-    console.warn('Missing Firebase configuration fields:', missingFields);
-    return false;
+  // Validate format of key fields with better error messages
+  if (firebaseConfig.apiKey && !firebaseConfig.apiKey.startsWith('AIza') && firebaseConfig.apiKey !== "demo-api-key") {
+    errors.push('Invalid Firebase API key format - should start with "AIza"');
   }
   
-  // Validate format of key fields
-  if (!firebaseConfig.apiKey?.startsWith('AIza')) {
-    console.warn('Invalid Firebase API key format');
-    return false;
+  if (firebaseConfig.authDomain && !firebaseConfig.authDomain.includes('.firebaseapp.com') && firebaseConfig.authDomain !== "your_project.firebaseapp.com") {
+    errors.push('Invalid Firebase auth domain format - should end with ".firebaseapp.com"');
   }
   
-  if (!firebaseConfig.authDomain?.includes('.firebaseapp.com')) {
-    console.warn('Invalid Firebase auth domain format');
-    return false;
+  if (firebaseConfig.projectId && firebaseConfig.projectId.length < 3 && firebaseConfig.projectId !== "your_project_id") {
+    errors.push('Invalid Firebase project ID - should be at least 3 characters');
   }
   
-  return true;
+  const isValid = missingFields.length === 0 && errors.length === 0;
+  
+  if (!isValid) {
+    console.warn('Firebase configuration validation failed:', {
+      missingFields,
+      errors,
+      config: Object.keys(firebaseConfig).reduce((acc, key) => {
+        acc[key] = firebaseConfig[key as keyof typeof firebaseConfig] ? '[SET]' : '[MISSING]';
+        return acc;
+      }, {} as Record<string, string>)
+    });
+  }
+  
+  return { isValid, missingFields, errors };
 };
 
-// Initialize Firebase only if config is valid
+// Initialize Firebase with enhanced error handling
 let app: any;
 let auth: any;
 let db: any;
 let analytics: any;
 let googleProvider: GoogleAuthProvider;
 
-const isConfigValid = validateFirebaseConfig();
+const configValidation = validateFirebaseConfig();
+const isConfigValid = configValidation.isValid;
 
 if (isConfigValid) {
   try {
@@ -76,9 +91,13 @@ if (isConfigValid) {
     auth = getAuth(app);
     db = getFirestore(app);
     
-    // Initialize analytics only in production
+    // Initialize analytics only in production with proper error handling
     if (import.meta.env.PROD && firebaseConfig.measurementId) {
-      analytics = getAnalytics(app);
+      try {
+        analytics = getAnalytics(app);
+      } catch (analyticsError) {
+        console.warn('Analytics initialization failed:', analyticsError);
+      }
     }
     
     // Configure Google Auth Provider with enhanced settings
@@ -103,8 +122,12 @@ if (isConfigValid) {
     
     // Connect to emulator in development if needed
     if (import.meta.env.DEV && import.meta.env.VITE_USE_FIREBASE_EMULATOR === 'true') {
-      connectAuthEmulator(auth, 'http://localhost:9099');
-      connectFirestoreEmulator(db, 'localhost', 8080);
+      try {
+        connectAuthEmulator(auth, 'http://localhost:9099');
+        connectFirestoreEmulator(db, 'localhost', 8080);
+      } catch (emulatorError) {
+        console.warn('Firebase emulator connection failed:', emulatorError);
+      }
     }
     
     console.log('✅ Firebase initialized successfully');
@@ -112,13 +135,16 @@ if (isConfigValid) {
     
   } catch (error) {
     console.error('❌ Firebase initialization error:', error);
+    console.error('Configuration validation:', configValidation);
   }
 } else {
   console.warn('⚠️ Firebase configuration incomplete - Authentication services will be unavailable');
+  console.log('📝 Missing fields:', configValidation.missingFields);
+  console.log('📝 Validation errors:', configValidation.errors);
   console.log('📝 Please check your .env file and ensure all Firebase configuration values are set correctly');
 }
 
-// Enhanced error handling with specific Google OAuth errors
+// Standardized error handling with better error messages
 const getAuthErrorMessage = (errorCode: string): string => {
   const errorMessages: Record<string, string> = {
     // General auth errors
@@ -160,10 +186,19 @@ const getAuthErrorMessage = (errorCode: string): string => {
   return errorMessages[errorCode] || `Authentication error: ${errorCode}. Please try again or contact support.`;
 };
 
+// Standardized error response interface
+interface AuthResponse<T = any> {
+  user: T | null;
+  error: string | null;
+}
+
 // Enhanced Google Sign-In with comprehensive error handling
-export const signInWithGoogle = async () => {
+export const signInWithGoogle = async (): Promise<AuthResponse<User>> => {
   if (!isConfigValid || !auth || !googleProvider) {
-    throw new Error('Google authentication is not properly configured. Please check your Firebase setup or contact support.');
+    return {
+      user: null,
+      error: 'Google authentication is not properly configured. Please check your Firebase setup or contact support.'
+    };
   }
 
   try {
@@ -180,7 +215,10 @@ export const signInWithGoogle = async () => {
     const credential = GoogleAuthProvider.credentialFromResult(result);
     
     if (!user) {
-      throw new Error('Google sign-in completed but no user data received');
+      return {
+        user: null,
+        error: 'Google sign-in completed but no user data received'
+      };
     }
     
     console.log('✅ Google sign-in successful:', {
@@ -194,17 +232,21 @@ export const signInWithGoogle = async () => {
     const additionalUserInfo = result.user.providerData[0];
     
     // Create or update user profile with Google data
-    await createOrUpdateUserProfile(user, 'google', {
-      googleCredential: {
-        accessToken: credential?.accessToken,
-        idToken: credential?.idToken,
-        providerId: additionalUserInfo?.providerId,
-        lastSignInTime: new Date().toISOString()
-      }
-    });
-    
-    // Log successful authentication for security monitoring
-    console.log('🔐 User profile updated with Google authentication data');
+    try {
+      await createOrUpdateUserProfile(user, 'google', {
+        googleCredential: {
+          accessToken: credential?.accessToken,
+          idToken: credential?.idToken,
+          providerId: additionalUserInfo?.providerId,
+          lastSignInTime: new Date().toISOString()
+        }
+      });
+      
+      console.log('🔐 User profile updated with Google authentication data');
+    } catch (profileError) {
+      console.warn('Profile update failed:', profileError);
+      // Don't fail the auth if profile update fails
+    }
     
     return { user, error: null };
     
@@ -219,36 +261,25 @@ export const signInWithGoogle = async () => {
       customData: error.customData
     });
     
-    // Handle specific Google OAuth errors
-    let errorMessage = getAuthErrorMessage(error.code);
-    
-    // Add specific troubleshooting for common issues
-    if (error.code === 'auth/popup-blocked') {
-      errorMessage += '\n\nTroubleshooting:\n1. Allow pop-ups for this website\n2. Try disabling popup blockers\n3. Use a different browser if the issue persists';
-    } else if (error.code === 'auth/unauthorized-domain') {
-      errorMessage += '\n\nThis appears to be a configuration issue. Please contact support.';
-    } else if (error.code === 'auth/operation-not-allowed') {
-      errorMessage += '\n\nGoogle sign-in needs to be enabled in the Firebase console.';
-    }
-    
-    throw new Error(errorMessage);
+    const errorMessage = getAuthErrorMessage(error.code);
+    return { user: null, error: errorMessage };
   }
 };
 
-// Enhanced Email/Password Sign-In
-export const signInWithEmail = async (email: string, password: string) => {
+// Enhanced Email/Password Sign-In with better error handling
+export const signInWithEmail = async (email: string, password: string): Promise<AuthResponse<User>> => {
   if (!auth) {
-    throw new Error('Authentication service is not available');
+    return { user: null, error: 'Authentication service is not available' };
   }
 
   try {
     // Input validation
     if (!email || !password) {
-      throw new Error('Email and password are required');
+      return { user: null, error: 'Email and password are required' };
     }
     
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-      throw new Error('Please enter a valid email address');
+      return { user: null, error: 'Please enter a valid email address' };
     }
     
     console.log('🔐 Attempting email sign-in for:', email);
@@ -257,10 +288,14 @@ export const signInWithEmail = async (email: string, password: string) => {
     const user = result.user;
     
     // Update last login timestamp
-    await updateUserProfile(user.uid, {
-      lastLoginAt: serverTimestamp(),
-      lastLoginMethod: 'email'
-    });
+    try {
+      await updateUserProfile(user.uid, {
+        lastLoginAt: serverTimestamp(),
+        lastLoginMethod: 'email'
+      });
+    } catch (profileError) {
+      console.warn('Profile update failed:', profileError);
+    }
     
     console.log('✅ Email sign-in successful:', {
       uid: user.uid,
@@ -273,7 +308,7 @@ export const signInWithEmail = async (email: string, password: string) => {
     console.error('❌ Email sign-in error:', error);
     
     const errorMessage = getAuthErrorMessage(error.code);
-    throw new Error(errorMessage);
+    return { user: null, error: errorMessage };
   }
 };
 
@@ -283,23 +318,23 @@ export const signUpWithEmail = async (
   password: string, 
   fullName: string,
   gdprConsent: { marketing: boolean; analytics: boolean }
-) => {
+): Promise<AuthResponse<User>> => {
   if (!auth) {
-    throw new Error('Authentication service is not available');
+    return { user: null, error: 'Authentication service is not available' };
   }
 
   try {
     // Enhanced input validation
     if (!email || !password || !fullName) {
-      throw new Error('All fields are required');
+      return { user: null, error: 'All fields are required' };
     }
     
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-      throw new Error('Please enter a valid email address');
+      return { user: null, error: 'Please enter a valid email address' };
     }
     
     if (password.length < 8) {
-      throw new Error('Password must be at least 8 characters long');
+      return { user: null, error: 'Password must be at least 8 characters long' };
     }
     
     // Check password strength
@@ -309,7 +344,7 @@ export const signUpWithEmail = async (
     const hasSpecialChar = /[!@#$%^&*(),.?":{}|<>]/.test(password);
     
     if (!hasUpperCase || !hasLowerCase || !hasNumbers) {
-      throw new Error('Password must contain uppercase, lowercase, and numeric characters');
+      return { user: null, error: 'Password must contain uppercase, lowercase, and numeric characters' };
     }
     
     console.log('📝 Creating new user account for:', email);
@@ -318,26 +353,38 @@ export const signUpWithEmail = async (
     const user = result.user;
     
     // Update user profile with display name
-    await updateProfile(user, {
-      displayName: fullName
-    });
+    try {
+      await updateProfile(user, {
+        displayName: fullName
+      });
+    } catch (profileError) {
+      console.warn('Display name update failed:', profileError);
+    }
     
     // Send email verification
-    await sendEmailVerification(user, {
-      url: `${window.location.origin}/auth?verified=true`,
-      handleCodeInApp: false
-    });
+    try {
+      await sendEmailVerification(user, {
+        url: `${window.location.origin}/auth?verified=true`,
+        handleCodeInApp: false
+      });
+    } catch (verificationError) {
+      console.warn('Email verification failed:', verificationError);
+    }
     
     // Create comprehensive user profile with GDPR compliance
-    await createOrUpdateUserProfile(user, 'email', {
-      gdprConsent: {
-        marketing: gdprConsent.marketing,
-        analytics: gdprConsent.analytics,
-        consentDate: serverTimestamp(),
-        consentVersion: '1.0'
-      },
-      emailVerificationSent: true
-    });
+    try {
+      await createOrUpdateUserProfile(user, 'email', {
+        gdprConsent: {
+          marketing: gdprConsent.marketing,
+          analytics: gdprConsent.analytics,
+          consentDate: serverTimestamp(),
+          consentVersion: '1.0'
+        },
+        emailVerificationSent: true
+      });
+    } catch (profileError) {
+      console.warn('Profile creation failed:', profileError);
+    }
     
     console.log('✅ User registration successful:', {
       uid: user.uid,
@@ -350,19 +397,19 @@ export const signUpWithEmail = async (
     console.error('❌ Email sign-up error:', error);
     
     const errorMessage = getAuthErrorMessage(error.code);
-    throw new Error(errorMessage);
+    return { user: null, error: errorMessage };
   }
 };
 
 // Enhanced Password Reset
-export const resetPassword = async (email: string) => {
+export const resetPassword = async (email: string): Promise<AuthResponse> => {
   if (!auth) {
-    throw new Error('Authentication service is not available');
+    return { user: null, error: 'Authentication service is not available' };
   }
 
   try {
     if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-      throw new Error('Please enter a valid email address');
+      return { user: null, error: 'Please enter a valid email address' };
     }
     
     await sendPasswordResetEmail(auth, email, {
@@ -372,25 +419,29 @@ export const resetPassword = async (email: string) => {
     
     console.log('📧 Password reset email sent to:', email);
     
-    return { error: null };
+    return { user: null, error: null };
   } catch (error: any) {
     console.error('❌ Password reset error:', error);
     
     const errorMessage = getAuthErrorMessage(error.code);
-    throw new Error(errorMessage);
+    return { user: null, error: errorMessage };
   }
 };
 
-// Enhanced logout with cleanup
-export const logOut = async () => {
+// Enhanced logout with comprehensive cleanup
+export const logOut = async (): Promise<AuthResponse> => {
   try {
     if (auth?.currentUser) {
       const uid = auth.currentUser.uid;
       
       // Update last logout timestamp
-      await updateUserProfile(uid, {
-        lastLogoutAt: serverTimestamp()
-      });
+      try {
+        await updateUserProfile(uid, {
+          lastLogoutAt: serverTimestamp()
+        });
+      } catch (profileError) {
+        console.warn('Profile update failed during logout:', profileError);
+      }
       
       await signOut(auth);
       
@@ -398,29 +449,37 @@ export const logOut = async () => {
     }
     
     // Clear all local storage and session data
-    localStorage.clear();
-    sessionStorage.clear();
+    try {
+      localStorage.clear();
+      sessionStorage.clear();
+      
+      // Clear cookies
+      document.cookie.split(";").forEach((c) => {
+        document.cookie = c
+          .replace(/^ +/, "")
+          .replace(/=.*/, "=;expires=" + new Date().toUTCString() + ";path=/");
+      });
+    } catch (storageError) {
+      console.warn('Storage cleanup failed:', storageError);
+    }
     
-    // Clear cookies
-    document.cookie.split(";").forEach((c) => {
-      document.cookie = c
-        .replace(/^ +/, "")
-        .replace(/=.*/, "=;expires=" + new Date().toUTCString() + ";path=/");
-    });
-    
-    return { error: null };
+    return { user: null, error: null };
   } catch (error: any) {
     console.error('❌ Logout error:', error);
     
     // Force logout even if Firebase fails
-    localStorage.clear();
-    sessionStorage.clear();
+    try {
+      localStorage.clear();
+      sessionStorage.clear();
+    } catch (storageError) {
+      console.warn('Emergency storage cleanup failed:', storageError);
+    }
     
-    return { error: error.message };
+    return { user: null, error: error.message };
   }
 };
 
-// User profile management functions
+// User profile management functions with enhanced error handling
 const createOrUpdateUserProfile = async (
   user: User, 
   provider: string, 
@@ -476,10 +535,11 @@ const createOrUpdateUserProfile = async (
     }
   } catch (error) {
     console.error('❌ Error managing user profile:', error);
+    throw error; // Re-throw to allow caller to handle
   }
 };
 
-// Get user profile
+// Get user profile with error handling
 export const getUserProfile = async (uid: string) => {
   if (!db) return null;
   
@@ -498,7 +558,7 @@ export const getUserProfile = async (uid: string) => {
   }
 };
 
-// Update user profile
+// Update user profile with error handling
 export const updateUserProfile = async (uid: string, updates: any) => {
   if (!db) return;
   
@@ -512,28 +572,37 @@ export const updateUserProfile = async (uid: string, updates: any) => {
     console.log('👤 User profile updated:', uid);
   } catch (error) {
     console.error('❌ Error updating user profile:', error);
+    throw error; // Re-throw to allow caller to handle
   }
 };
 
-// Auth state listener
+// Auth state listener with error handling
 export const onAuthStateChange = (callback: (user: User | null) => void) => {
   if (!auth) {
     callback(null);
     return () => {};
   }
   
-  return onAuthStateChanged(auth, callback);
+  try {
+    return onAuthStateChanged(auth, callback);
+  } catch (error) {
+    console.error('❌ Error setting up auth state listener:', error);
+    callback(null);
+    return () => {};
+  }
 };
 
-// Configuration status check
-export const isFirebaseConfigured = () => {
+// Configuration status checks
+export const isFirebaseConfigured = (): boolean => {
   return isConfigValid && !!auth;
 };
 
-// Google OAuth availability check
-export const isGoogleOAuthAvailable = () => {
+export const isGoogleOAuthAvailable = (): boolean => {
   return isConfigValid && !!auth && !!googleProvider;
 };
 
 // Export Firebase instances
 export { auth, db, analytics };
+
+// Export configuration validation for debugging
+export const getFirebaseConfigStatus = () => configValidation;

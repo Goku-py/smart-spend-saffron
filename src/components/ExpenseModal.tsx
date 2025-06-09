@@ -8,6 +8,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { categories, paymentMethods } from "../data/mockData";
 
+// Enhanced interface with better type safety
 interface Expense {
   id: string;
   amount: number;
@@ -21,11 +22,37 @@ interface Expense {
 interface ExpenseModalProps {
   open: boolean;
   onClose: () => void;
-  onExpenseAdded?: (expenseData: any) => void;
-  onExpenseUpdated?: (id: string, expenseData: any) => void;
-  expense?: Expense | null; // For editing
+  onExpenseAdded?: (expenseData: Partial<Expense>) => void;
+  onExpenseUpdated?: (id: string, expenseData: Partial<Expense>) => void;
+  expense?: Expense | null;
   mode?: 'add' | 'edit';
 }
+
+// Form validation utilities
+const validateExpenseForm = (data: Partial<Expense>): { isValid: boolean; errors: string[] } => {
+  const errors: string[] = [];
+  
+  if (!data.amount || data.amount <= 0) {
+    errors.push('Amount must be greater than 0');
+  }
+  
+  if (!data.category || data.category.trim() === '') {
+    errors.push('Category is required');
+  }
+  
+  if (!data.description || data.description.trim() === '') {
+    errors.push('Description is required');
+  }
+  
+  if (data.amount && data.amount > 1000000) {
+    errors.push('Amount cannot exceed ₹10,00,000');
+  }
+  
+  return {
+    isValid: errors.length === 0,
+    errors
+  };
+};
 
 const ExpenseModal = ({ 
   open, 
@@ -42,25 +69,22 @@ const ExpenseModal = ({
   const [paymentMethod, setPaymentMethod] = useState('');
   const [date, setDate] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [formErrors, setFormErrors] = useState<string[]>([]);
   const { toast } = useToast();
 
-  // Populate form when editing
+  // Enhanced form population with validation
   useEffect(() => {
     if (mode === 'edit' && expense) {
       setAmount(expense.amount.toString());
       setCategory(expense.category);
       setDescription(expense.description);
-      setMerchant(expense.merchant);
-      setPaymentMethod(expense.method);
+      setMerchant(expense.merchant || '');
+      setPaymentMethod(expense.method || '');
       setDate(expense.date);
+      setFormErrors([]);
     } else {
       // Reset form for add mode
-      setAmount('');
-      setCategory('');
-      setDescription('');
-      setMerchant('');
-      setPaymentMethod('');
-      setDate(new Date().toISOString().split('T')[0]);
+      resetForm();
     }
   }, [mode, expense, open]);
 
@@ -71,32 +95,38 @@ const ExpenseModal = ({
     setMerchant('');
     setPaymentMethod('');
     setDate(new Date().toISOString().split('T')[0]);
+    setFormErrors([]);
   };
 
+  // Enhanced form submission with better error handling
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!amount || !category || !description) {
+    const expenseData: Partial<Expense> = {
+      amount: parseFloat(amount),
+      category,
+      description: description.trim(),
+      merchant: merchant.trim(),
+      method: paymentMethod,
+      date: date || new Date().toISOString().split('T')[0]
+    };
+
+    // Validate form data
+    const validation = validateExpenseForm(expenseData);
+    if (!validation.isValid) {
+      setFormErrors(validation.errors);
       toast({
-        title: "Missing Information",
-        description: "Please fill all required fields",
+        title: "Validation Error",
+        description: validation.errors.join(', '),
         variant: "destructive",
       });
       return;
     }
 
     setIsLoading(true);
+    setFormErrors([]);
 
     try {
-      const expenseData = {
-        amount: parseFloat(amount),
-        category,
-        description,
-        merchant,
-        method: paymentMethod,
-        date: date || new Date().toISOString().split('T')[0]
-      };
-
       if (mode === 'edit' && expense && onExpenseUpdated) {
         await onExpenseUpdated(expense.id, expenseData);
         toast({
@@ -115,9 +145,11 @@ const ExpenseModal = ({
       onClose();
     } catch (error) {
       console.error('Error saving expense:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Failed to save expense';
+      setFormErrors([errorMessage]);
       toast({
         title: "Error",
-        description: "Failed to save expense. Please try again.",
+        description: errorMessage,
         variant: "destructive",
       });
     } finally {
@@ -130,9 +162,31 @@ const ExpenseModal = ({
     onClose();
   };
 
+  // Enhanced amount input handling
+  const handleAmountChange = (value: string) => {
+    // Allow only numbers and decimal point
+    const sanitizedValue = value.replace(/[^0-9.]/g, '');
+    
+    // Prevent multiple decimal points
+    const parts = sanitizedValue.split('.');
+    if (parts.length > 2) {
+      return;
+    }
+    
+    // Limit decimal places to 2
+    if (parts[1] && parts[1].length > 2) {
+      return;
+    }
+    
+    setAmount(sanitizedValue);
+    
+    // Clear amount-related errors
+    setFormErrors(prev => prev.filter(error => !error.includes('Amount')));
+  };
+
   return (
     <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="sm:max-w-md max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>
             {mode === 'edit' ? 'Edit Expense' : 'Add New Expense'}
@@ -145,6 +199,17 @@ const ExpenseModal = ({
           </DialogDescription>
         </DialogHeader>
         
+        {/* Display form errors */}
+        {formErrors.length > 0 && (
+          <div className="bg-red-50 border border-red-200 rounded-lg p-3">
+            <ul className="text-sm text-red-700 space-y-1">
+              {formErrors.map((error, index) => (
+                <li key={index}>• {error}</li>
+              ))}
+            </ul>
+          </div>
+        )}
+        
         <form onSubmit={handleSubmit} className="space-y-4">
           {/* Amount */}
           <div className="space-y-2">
@@ -155,16 +220,18 @@ const ExpenseModal = ({
               </span>
               <Input
                 id="amount"
-                type="number"
-                placeholder="0"
+                type="text"
+                placeholder="0.00"
                 value={amount}
-                onChange={(e) => setAmount(e.target.value)}
+                onChange={(e) => handleAmountChange(e.target.value)}
                 className="pl-8"
-                min="0"
-                step="0.01"
                 required
+                aria-describedby="amount-help"
               />
             </div>
+            <p id="amount-help" className="text-xs text-gray-500">
+              Enter amount in rupees (e.g., 150.50)
+            </p>
           </div>
 
           {/* Category */}
@@ -189,12 +256,17 @@ const ExpenseModal = ({
             <Label htmlFor="description">Description *</Label>
             <Textarea
               id="description"
-              placeholder="e.g., Coffee, Groceries"
+              placeholder="e.g., Coffee at Starbucks, Grocery shopping"
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               rows={2}
               required
+              maxLength={200}
+              aria-describedby="description-help"
             />
+            <p id="description-help" className="text-xs text-gray-500">
+              {description.length}/200 characters
+            </p>
           </div>
 
           {/* Merchant */}
@@ -202,9 +274,10 @@ const ExpenseModal = ({
             <Label htmlFor="merchant">Merchant</Label>
             <Input
               id="merchant"
-              placeholder="e.g., Swiggy, BigBasket"
+              placeholder="e.g., Swiggy, BigBasket, Local Store"
               value={merchant}
               onChange={(e) => setMerchant(e.target.value)}
+              maxLength={100}
             />
           </div>
 
@@ -234,6 +307,7 @@ const ExpenseModal = ({
               value={date}
               onChange={(e) => setDate(e.target.value)}
               max={new Date().toISOString().split('T')[0]}
+              required
             />
           </div>
 
@@ -249,7 +323,7 @@ const ExpenseModal = ({
             </Button>
             <Button 
               type="submit" 
-              disabled={isLoading}
+              disabled={isLoading || !amount || !category || !description}
               className="flex-1 bg-gradient-to-r from-green-500 to-green-600 text-white"
             >
               {isLoading 

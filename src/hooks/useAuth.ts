@@ -19,6 +19,44 @@ interface AuthState {
   error: string | null;
 }
 
+// Enhanced session validation
+const validateDemoSession = (session: any): boolean => {
+  if (!session || !session.timestamp) return false;
+  
+  const sessionAge = Date.now() - session.timestamp;
+  const maxAge = 24 * 60 * 60 * 1000; // 24 hours
+  
+  return sessionAge < maxAge;
+};
+
+// Enhanced demo session management
+const getDemoSession = (): { user: any; session: any } | null => {
+  try {
+    const demoUser = localStorage.getItem('demo_user');
+    const demoSession = localStorage.getItem('demo_session');
+    
+    if (demoUser && demoSession) {
+      const user = JSON.parse(demoUser);
+      const session = JSON.parse(demoSession);
+      
+      if (validateDemoSession(session)) {
+        return { user, session };
+      } else {
+        // Session expired, clean up
+        localStorage.removeItem('demo_user');
+        localStorage.removeItem('demo_session');
+      }
+    }
+  } catch (error) {
+    console.error('Error loading demo session:', error);
+    // Clean up corrupted data
+    localStorage.removeItem('demo_user');
+    localStorage.removeItem('demo_session');
+  }
+  
+  return null;
+};
+
 export const useAuth = () => {
   const [authState, setAuthState] = useState<AuthState>({
     user: null,
@@ -28,12 +66,21 @@ export const useAuth = () => {
 
   useEffect(() => {
     let unsubscribe: (() => void) | undefined;
+    let mounted = true; // Track component mount status
+
+    const setAuthStateIfMounted = (newState: Partial<AuthState>) => {
+      if (mounted) {
+        setAuthState(prev => ({ ...prev, ...newState }));
+      }
+    };
 
     const initializeAuth = async () => {
       try {
         // Check if Firebase is configured and set up listener
         if (isFirebaseConfigured()) {
           unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
+            if (!mounted) return;
+
             if (firebaseUser) {
               try {
                 // Get user profile from Firestore
@@ -51,10 +98,14 @@ export const useAuth = () => {
                 
                 // Sync with Supabase if configured
                 if (isSupabaseConfigured()) {
-                  await syncWithSupabase(authUser);
+                  try {
+                    await syncWithSupabase(authUser);
+                  } catch (syncError) {
+                    console.warn('Supabase sync failed:', syncError);
+                  }
                 }
                 
-                setAuthState({
+                setAuthStateIfMounted({
                   user: authUser,
                   loading: false,
                   error: null
@@ -71,7 +122,7 @@ export const useAuth = () => {
                   provider: 'firebase'
                 };
                 
-                setAuthState({
+                setAuthStateIfMounted({
                   user: authUser,
                   loading: false,
                   error: null
@@ -88,11 +139,17 @@ export const useAuth = () => {
         }
       } catch (error) {
         console.error('Auth initialization error:', error);
+        setAuthStateIfMounted({
+          error: 'Authentication initialization failed',
+          loading: false
+        });
         await checkDemoSession();
       }
     };
 
     const checkSupabaseSession = async () => {
+      if (!mounted) return;
+
       try {
         if (!isSupabaseConfigured() || !supabase) {
           await checkDemoSession();
@@ -117,7 +174,7 @@ export const useAuth = () => {
             provider: 'supabase'
           };
           
-          setAuthState({
+          setAuthStateIfMounted({
             user: authUser,
             loading: false,
             error: null
@@ -132,50 +189,40 @@ export const useAuth = () => {
     };
 
     const checkDemoSession = async () => {
+      if (!mounted) return;
+
       try {
-        const demoUser = localStorage.getItem('demo_user');
-        const demoSession = localStorage.getItem('demo_session');
+        const demoData = getDemoSession();
         
-        if (demoUser && demoSession) {
-          const user = JSON.parse(demoUser);
-          const session = JSON.parse(demoSession);
+        if (demoData) {
+          const { user } = demoData;
           
-          // Check if demo session is still valid (24 hours)
-          const sessionAge = Date.now() - (session.timestamp || 0);
-          const maxAge = 24 * 60 * 60 * 1000; // 24 hours
+          const authUser: AuthUser = {
+            id: user.id,
+            email: user.email,
+            displayName: user.user_metadata?.full_name,
+            provider: 'demo'
+          };
           
-          if (sessionAge < maxAge) {
-            const authUser: AuthUser = {
-              id: user.id,
-              email: user.email,
-              displayName: user.user_metadata?.full_name,
-              provider: 'demo'
-            };
-            
-            setAuthState({
-              user: authUser,
-              loading: false,
-              error: null
-            });
-            return;
-          } else {
-            // Demo session expired, clear it
-            localStorage.removeItem('demo_user');
-            localStorage.removeItem('demo_session');
-          }
+          setAuthStateIfMounted({
+            user: authUser,
+            loading: false,
+            error: null
+          });
+          return;
         }
         
-        setAuthState({
+        setAuthStateIfMounted({
           user: null,
           loading: false,
           error: null
         });
       } catch (error) {
         console.error('Demo session check error:', error);
-        setAuthState({
+        setAuthStateIfMounted({
           user: null,
           loading: false,
-          error: null
+          error: 'Session validation failed'
         });
       }
     };
@@ -211,16 +258,19 @@ export const useAuth = () => {
       }
     };
 
+    // Start initialization
     initializeAuth();
 
+    // Cleanup function
     return () => {
+      mounted = false;
       if (unsubscribe) {
         unsubscribe();
       }
     };
   }, []);
 
-  // Refresh user profile
+  // Refresh user profile with error handling
   const refreshProfile = async () => {
     if (authState.user && authState.user.provider === 'firebase') {
       try {
@@ -231,6 +281,10 @@ export const useAuth = () => {
         }));
       } catch (error) {
         console.error('Error refreshing profile:', error);
+        setAuthState(prev => ({
+          ...prev,
+          error: 'Failed to refresh profile'
+        }));
       }
     }
   };
