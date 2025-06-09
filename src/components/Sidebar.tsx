@@ -4,8 +4,6 @@ import { Badge } from "@/components/ui/badge";
 import { Home, Plus, Target, BarChart, Bell, User } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { useNotifications } from "../contexts/NotificationContext";
-import LanguageSelector from "./LanguageSelector";
-import ThemeToggle from "./ThemeToggle";
 
 const Sidebar = () => {
   const location = useLocation();
@@ -32,10 +30,6 @@ const Sidebar = () => {
             Smart Spend
           </span>
           <span className="text-lg">₹</span>
-        </div>
-        <div className="flex items-center justify-between">
-          <LanguageSelector />
-          <ThemeToggle size="sm" />
         </div>
       </div>
 

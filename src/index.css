@@ -2,7 +2,7 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Smart Spend - Indian Design System with Dark Mode */
+/* Smart Spend - Enhanced Design System with Dark Mode */
 
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
 
@@ -136,6 +136,133 @@
 }
 
 @layer components {
+  /* Enhanced Animation System */
+  @keyframes fade-in {
+    from { 
+      opacity: 0; 
+      transform: translateY(10px); 
+    }
+    to { 
+      opacity: 1; 
+      transform: translateY(0); 
+    }
+  }
+
+  @keyframes slide-up {
+    from { 
+      opacity: 0; 
+      transform: translateY(30px); 
+    }
+    to { 
+      opacity: 1; 
+      transform: translateY(0); 
+    }
+  }
+
+  @keyframes slide-in-left {
+    from { 
+      opacity: 0; 
+      transform: translateX(-30px); 
+    }
+    to { 
+      opacity: 1; 
+      transform: translateX(0); 
+    }
+  }
+
+  @keyframes slide-in-right {
+    from { 
+      opacity: 0; 
+      transform: translateX(30px); 
+    }
+    to { 
+      opacity: 1; 
+      transform: translateX(0); 
+    }
+  }
+
+  @keyframes scale-in {
+    from { 
+      opacity: 0; 
+      transform: scale(0.95); 
+    }
+    to { 
+      opacity: 1; 
+      transform: scale(1); 
+    }
+  }
+
+  @keyframes bounce-in {
+    0% { 
+      opacity: 0; 
+      transform: scale(0.3); 
+    }
+    50% { 
+      opacity: 1; 
+      transform: scale(1.05); 
+    }
+    70% { 
+      transform: scale(0.9); 
+    }
+    100% { 
+      opacity: 1; 
+      transform: scale(1); 
+    }
+  }
+
+  @keyframes pulse-glow {
+    0%, 100% { 
+      box-shadow: 0 0 5px rgba(255, 117, 24, 0.5); 
+    }
+    50% { 
+      box-shadow: 0 0 20px rgba(255, 117, 24, 0.8); 
+    }
+  }
+
+  @keyframes shimmer {
+    0% { 
+      background-position: -200px 0; 
+    }
+    100% { 
+      background-position: calc(200px + 100%) 0; 
+    }
+  }
+
+  /* Animation Classes */
+  .animate-fade-in {
+    animation: fade-in 0.6s ease-out forwards;
+  }
+
+  .animate-slide-up {
+    animation: slide-up 0.8s ease-out forwards;
+  }
+
+  .animate-slide-in-left {
+    animation: slide-in-left 0.6s ease-out forwards;
+  }
+
+  .animate-slide-in-right {
+    animation: slide-in-right 0.6s ease-out forwards;
+  }
+
+  .animate-scale-in {
+    animation: scale-in 0.4s ease-out forwards;
+  }
+
+  .animate-bounce-in {
+    animation: bounce-in 0.6s ease-out forwards;
+  }
+
+  .animate-pulse-glow {
+    animation: pulse-glow 2s ease-in-out infinite;
+  }
+
+  .animate-shimmer {
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.4), transparent);
+    background-size: 200px 100%;
+    animation: shimmer 1.5s infinite;
+  }
+
   /* Standardized spacing system */
   .space-xs { margin: var(--space-xs); }
   .space-sm { margin: var(--space-sm); }
@@ -157,7 +284,7 @@
     -webkit-overflow-scrolling: touch;
   }
 
-  /* Indian themed components */
+  /* Enhanced Indian themed components */
   .diwali-pattern {
     background-image: radial-gradient(circle at 25% 25%, #FF7518 2px, transparent 2px),
                       radial-gradient(circle at 75% 75%, #FFD700 1px, transparent 1px);
@@ -201,7 +328,7 @@
     @apply text-white font-semibold py-2 px-4 rounded-lg shadow-md hover:shadow-lg transition-all duration-300;
   }
 
-  /* Improved loading states */
+  /* Enhanced loading states */
   .loading-skeleton {
     @apply animate-pulse bg-muted rounded;
   }
@@ -225,17 +352,55 @@
     transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
   }
 
-  /* Dark mode specific components */
-  .dark .bg-gradient-to-br {
-    background: linear-gradient(to bottom right, hsl(var(--background)), hsl(var(--muted)));
+  /* Enhanced hover effects */
+  .hover-lift {
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
   }
 
-  .dark .shadow-lg {
-    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3), 0 4px 6px -2px rgba(0, 0, 0, 0.1);
+  .hover-lift:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
   }
 
-  .dark .shadow-xl {
-    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.3), 0 10px 10px -5px rgba(0, 0, 0, 0.1);
+  .dark .hover-lift:hover {
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+  }
+
+  /* Gradient text effects */
+  .gradient-text {
+    background: linear-gradient(135deg, #FF7518 0%, #FFD700 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  /* Enhanced focus states */
+  .focus-ring {
+    @apply focus:outline-none focus:ring-2 focus:ring-orange-500 focus:ring-offset-2;
+  }
+
+  .dark .focus-ring {
+    @apply focus:ring-offset-gray-800;
+  }
+
+  /* Data visualization enhancements */
+  .chart-container {
+    @apply relative overflow-hidden rounded-lg;
+  }
+
+  .chart-tooltip {
+    @apply bg-background border border-border rounded-lg p-3 shadow-lg;
+  }
+
+  /* Mobile-specific enhancements */
+  @media (max-width: 768px) {
+    .mobile-optimized {
+      @apply text-sm p-3;
+    }
+    
+    .mobile-stack {
+      @apply flex-col space-y-2 space-x-0;
+    }
   }
 }
 
@@ -251,11 +416,6 @@
   60% { transform: translateY(-5px); }
 }
 
-@keyframes fade-in {
-  from { opacity: 0; transform: translateY(10px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-
 @keyframes theme-switch {
   0% { opacity: 0.8; }
   50% { opacity: 0.5; }
@@ -268,10 +428,6 @@
 
 .rupee-animation {
   animation: rupee-bounce 2s ease-in-out infinite;
-}
-
-.fade-in {
-  animation: fade-in 0.3s ease-out;
 }
 
 .theme-switch-animation {
@@ -320,7 +476,7 @@ html {
   scroll-behavior: smooth;
 }
 
-/* Custom scrollbar for webkit browsers */
+/* Enhanced scrollbar styling */
 ::-webkit-scrollbar {
   width: 8px;
   height: 8px;
@@ -328,11 +484,13 @@ html {
 
 ::-webkit-scrollbar-track {
   background: hsl(var(--muted));
+  border-radius: 4px;
 }
 
 ::-webkit-scrollbar-thumb {
   background: hsl(var(--muted-foreground));
   border-radius: 4px;
+  transition: background 0.2s ease;
 }
 
 ::-webkit-scrollbar-thumb:hover {
@@ -350,4 +508,27 @@ html {
 
 .dark ::-webkit-scrollbar-thumb:hover {
   background: hsl(var(--primary));
+}
+
+/* Enhanced selection styling */
+::selection {
+  background: hsl(var(--primary) / 0.2);
+  color: hsl(var(--primary-foreground));
+}
+
+.dark ::selection {
+  background: hsl(var(--primary) / 0.3);
+}
+
+/* Loading spinner enhancement */
+.spinner {
+  border: 2px solid hsl(var(--muted));
+  border-top: 2px solid hsl(var(--primary));
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
 }
