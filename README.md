@@ -1,24 +1,35 @@
 Smart Spend Saffron 💸
+
 Take control of your finances with style and smarts!Smart Spend Saffron is a sleek, AI-powered web app that makes budgeting, expense tracking, and financial planning a breeze. Whether you're saving for a dream vacation or just keeping tabs on daily spending, this app delivers intuitive tools and real-time insights to help you spend smarter.
 
 ✨ Features
 
 Track Expenses Easily 📊: Log transactions and categorize spending in seconds.
+
 Smart Budgets 💡: Set custom budgets and get alerts before you overspend.
+
 Real-Time Insights 📈: Visualize your financial habits with interactive charts.
+
 Secure & Private 🔒: Robust authentication keeps your data safe.
+
 Cross-Device Access 📱: Manage your finances anywhere, anytime.
+
 AI-Powered Tips 🤖: Get personalized advice to optimize your savings.
 
 🛠️ Tech Stack
 
 Backend: Nodejs, Supabase for data
+
 Frontend: JavaScript, React, Tailwind CSS
+
 Database: PostgreSQL (production), SQLite (development)
+
 AI: Lovable’s AI-driven development tools
+
 Deployment: Global edge network via Lovable
 
-🚀 Get Started
+🚀 Get Started:
+
 Prerequisites:
 
 Node.js (for frontend dependencies)
