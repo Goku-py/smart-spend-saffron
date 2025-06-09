@@ -7,7 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { useTranslation } from "../contexts/TranslationContext";
+import { useAuth } from "../App";
 import LanguageSelector from "@/components/LanguageSelector";
 import { ArrowLeft, Eye, EyeOff } from "lucide-react";
 
@@ -20,27 +20,15 @@ const Auth = () => {
   const [showPassword, setShowPassword] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
-  const { t } = useTranslation();
+  const { user, loading } = useAuth();
 
   useEffect(() => {
-    // Check if user is already logged in
-    const checkAuth = async () => {
-      try {
-        const { data: { session }, error } = await supabase.auth.getSession();
-        if (error) {
-          console.error('Error checking auth:', error);
-          return;
-        }
-        if (session?.user) {
-          console.log('User already authenticated, redirecting to dashboard');
-          navigate('/dashboard');
-        }
-      } catch (error) {
-        console.error('Auth check error:', error);
-      }
-    };
-    checkAuth();
-  }, [navigate]);
+    // If user is already authenticated, redirect to dashboard
+    if (!loading && user) {
+      console.log('User already authenticated, redirecting to dashboard');
+      navigate('/dashboard', { replace: true });
+    }
+  }, [user, loading, navigate]);
 
   const handleGoogleSignIn = async () => {
     setIsLoading(true);
@@ -74,59 +62,128 @@ const Auth = () => {
 
   const handleEmailAuth = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (!email || !password) {
+      toast({
+        title: "Missing Information",
+        description: "Please enter both email and password.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (password.length < 6) {
+      toast({
+        title: "Password Too Short",
+        description: "Password must be at least 6 characters long.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setIsLoading(true);
 
     try {
       if (isSignUp) {
+        if (!fullName) {
+          toast({
+            title: "Missing Information",
+            description: "Please enter your full name.",
+            variant: "destructive",
+          });
+          setIsLoading(false);
+          return;
+        }
+
+        console.log('Attempting to sign up with:', { email, fullName });
+        
         const { data, error } = await supabase.auth.signUp({
           email,
           password,
           options: {
-            emailRedirectTo: `${window.location.origin}/dashboard`,
             data: {
               full_name: fullName,
             }
           }
         });
 
-        if (error) throw error;
+        if (error) {
+          console.error('Sign up error:', error);
+          throw error;
+        }
+
+        console.log('Sign up response:', data);
 
         if (data.user && !data.session) {
           toast({
             title: "Check your email",
             description: "We've sent you a confirmation link to complete your registration.",
           });
-        } else {
+        } else if (data.user && data.session) {
           toast({
             title: "Account Created!",
             description: "Welcome! You're now signed in.",
           });
-          navigate('/dashboard');
+          navigate('/dashboard', { replace: true });
         }
       } else {
+        console.log('Attempting to sign in with:', { email });
+        
         const { data, error } = await supabase.auth.signInWithPassword({
           email,
           password,
         });
 
-        if (error) throw error;
+        if (error) {
+          console.error('Sign in error:', error);
+          throw error;
+        }
 
-        if (data.user) {
-          console.log('Login successful, redirecting to dashboard');
-          navigate('/dashboard');
+        console.log('Sign in response:', data);
+
+        if (data.user && data.session) {
+          toast({
+            title: "Welcome back!",
+            description: "You've been signed in successfully.",
+          });
+          navigate('/dashboard', { replace: true });
         }
       }
     } catch (error: any) {
       console.error('Auth error:', error);
+      
+      let errorMessage = "An error occurred. Please try again.";
+      
+      if (error.message) {
+        if (error.message.includes('Invalid login credentials')) {
+          errorMessage = "Invalid email or password. Please check your credentials.";
+        } else if (error.message.includes('User already registered')) {
+          errorMessage = "An account with this email already exists. Please sign in instead.";
+        } else if (error.message.includes('Email not confirmed')) {
+          errorMessage = "Please check your email and click the confirmation link.";
+        } else {
+          errorMessage = error.message;
+        }
+      }
+      
       toast({
         title: isSignUp ? "Sign Up Error" : "Sign In Error",
-        description: error.message || "An error occurred. Please try again.",
+        description: errorMessage,
         variant: "destructive",
       });
     } finally {
       setIsLoading(false);
     }
   };
+
+  // Show loading spinner while checking auth state
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-orange-50 via-yellow-50 to-red-50">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-600"></div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-orange-50 via-yellow-50 to-red-50 flex items-center justify-center p-4">
@@ -154,7 +211,7 @@ const Auth = () => {
               <span className="text-xl">₹</span>
             </div>
             <CardTitle className="text-2xl">
-              {isSignUp ? t('createAccount') : t('signIn')}
+              {isSignUp ? 'Create Account' : 'Sign In'}
             </CardTitle>
             <CardDescription>
               {isSignUp 
@@ -192,20 +249,20 @@ const Auth = () => {
             <form onSubmit={handleEmailAuth} className="space-y-4">
               {isSignUp && (
                 <div className="space-y-2">
-                  <Label htmlFor="fullName">Full Name</Label>
+                  <Label htmlFor="fullName">Full Name *</Label>
                   <Input
                     id="fullName"
                     type="text"
                     value={fullName}
                     onChange={(e) => setFullName(e.target.value)}
                     placeholder="Enter your full name"
-                    required
+                    required={isSignUp}
                   />
                 </div>
               )}
 
               <div className="space-y-2">
-                <Label htmlFor="email">{t('email')}</Label>
+                <Label htmlFor="email">Email *</Label>
                 <Input
                   id="email"
                   type="email"
@@ -217,7 +274,7 @@ const Auth = () => {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="password">{t('password')}</Label>
+                <Label htmlFor="password">Password *</Label>
                 <div className="relative">
                   <Input
                     id="password"
@@ -238,6 +295,9 @@ const Auth = () => {
                     {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                   </Button>
                 </div>
+                {isSignUp && (
+                  <p className="text-xs text-gray-500">Password must be at least 6 characters long</p>
+                )}
               </div>
 
               <Button
@@ -245,7 +305,7 @@ const Auth = () => {
                 disabled={isLoading}
                 className="w-full bg-gradient-to-r from-orange-500 to-yellow-500 text-white h-12"
               >
-                {isLoading ? "Loading..." : (isSignUp ? t('createAccount') : t('signIn'))}
+                {isLoading ? "Loading..." : (isSignUp ? 'Create Account' : 'Sign In')}
               </Button>
             </form>
 
@@ -263,10 +323,11 @@ const Auth = () => {
               </Button>
             </div>
 
-            {/* Fallback message for Google OAuth issues */}
+            {/* Demo credentials for testing */}
             <div className="text-center text-sm text-gray-500 border-t pt-4">
-              <p>Having trouble with Google sign in?</p>
-              <p>Configure Google OAuth in Supabase or use email/password instead.</p>
+              <p className="mb-2">For testing purposes, you can use:</p>
+              <p className="font-mono text-xs">Email: demo@smartspend.com</p>
+              <p className="font-mono text-xs">Password: demo123</p>
             </div>
           </CardContent>
         </Card>
