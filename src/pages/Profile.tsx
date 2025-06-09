@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -11,7 +10,8 @@ import { useNavigate } from "react-router-dom";
 import Layout from "@/components/Layout";
 import { useAuth } from "../App";
 import { useCurrency, currencyOptions } from "../contexts/CurrencyContext";
-import { useTranslation, languages } from "../contexts/TranslationContext";
+import { useTranslationContext, languages } from "../contexts/TranslationContext";
+import { useTranslation } from "react-i18next";
 
 interface UserProfile {
   personalInfo: {
@@ -43,7 +43,8 @@ interface UserProfile {
 const Profile = () => {
   const { user, logout } = useAuth();
   const { currentCurrency, setCurrency, formatCurrency } = useCurrency();
-  const { currentLanguage, setLanguage, t } = useTranslation();
+  const { currentLanguage, setLanguage } = useTranslationContext();
+  const { t } = useTranslation();
   const { toast } = useToast();
   const navigate = useNavigate();
 
