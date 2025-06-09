@@ -4,6 +4,8 @@ import { Toaster } from "@/components/ui/toaster";
 import { CurrencyProvider } from "./contexts/CurrencyContext";
 import { TranslationProvider } from "./contexts/TranslationContext";
 import { NotificationProvider } from "./contexts/NotificationContext";
+import ErrorBoundary from "./components/ErrorBoundary";
+import NetworkStatus from "./components/NetworkStatus";
 import Home from "./pages/Home";
 import Landing from "./pages/Landing";
 import Auth from "./pages/Auth";
@@ -268,56 +270,59 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
 
 function App() {
   return (
-    <QueryClientProvider client={queryClient}>
-      <AuthProvider>
-        <CurrencyProvider>
-          <TranslationProvider>
-            <NotificationProvider>
-              <Router>
-                <Routes>
-                  <Route path="/" element={<Landing />} />
-                  <Route path="/home" element={<Home />} />
-                  <Route path="/auth" element={<Auth />} />
-                  <Route path="/dashboard" element={
-                    <ProtectedRoute>
-                      <Dashboard />
-                    </ProtectedRoute>
-                  } />
-                  <Route path="/expenses" element={
-                    <ProtectedRoute>
-                      <Expenses />
-                    </ProtectedRoute>
-                  } />
-                  <Route path="/budgets" element={
-                    <ProtectedRoute>
-                      <Budgets />
-                    </ProtectedRoute>
-                  } />
-                  <Route path="/reports" element={
-                    <ProtectedRoute>
-                      <Reports />
-                    </ProtectedRoute>
-                  } />
-                  <Route path="/notifications" element={
-                    <ProtectedRoute>
-                      <Notifications />
-                    </ProtectedRoute>
-                  } />
-                  <Route path="/profile" element={
-                    <ProtectedRoute>
-                      <Profile />
-                    </ProtectedRoute>
-                  } />
-                  <Route path="/index" element={<Index />} />
-                  <Route path="*" element={<NotFound />} />
-                </Routes>
-              </Router>
-              <Toaster />
-            </NotificationProvider>
-          </TranslationProvider>
-        </CurrencyProvider>
-      </AuthProvider>
-    </QueryClientProvider>
+    <ErrorBoundary>
+      <QueryClientProvider client={queryClient}>
+        <AuthProvider>
+          <CurrencyProvider>
+            <TranslationProvider>
+              <NotificationProvider>
+                <NetworkStatus />
+                <Router>
+                  <Routes>
+                    <Route path="/" element={<Landing />} />
+                    <Route path="/home" element={<Home />} />
+                    <Route path="/auth" element={<Auth />} />
+                    <Route path="/dashboard" element={
+                      <ProtectedRoute>
+                        <Dashboard />
+                      </ProtectedRoute>
+                    } />
+                    <Route path="/expenses" element={
+                      <ProtectedRoute>
+                        <Expenses />
+                      </ProtectedRoute>
+                    } />
+                    <Route path="/budgets" element={
+                      <ProtectedRoute>
+                        <Budgets />
+                      </ProtectedRoute>
+                    } />
+                    <Route path="/reports" element={
+                      <ProtectedRoute>
+                        <Reports />
+                      </ProtectedRoute>
+                    } />
+                    <Route path="/notifications" element={
+                      <ProtectedRoute>
+                        <Notifications />
+                      </ProtectedRoute>
+                    } />
+                    <Route path="/profile" element={
+                      <ProtectedRoute>
+                        <Profile />
+                      </ProtectedRoute>
+                    } />
+                    <Route path="/index" element={<Index />} />
+                    <Route path="*" element={<NotFound />} />
+                  </Routes>
+                </Router>
+                <Toaster />
+              </NotificationProvider>
+            </TranslationProvider>
+          </CurrencyProvider>
+        </AuthProvider>
+      </QueryClientProvider>
+    </ErrorBoundary>
   );
 }
 
