@@ -5,7 +5,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
-import { Eye, EyeOff, Loader2 } from "lucide-react";
+import { Eye, EyeOff, Loader2, AlertCircle } from "lucide-react";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { signInWithGoogle, signInWithEmail, signUpWithEmail, resetPassword, isFirebaseConfigured } from "../lib/firebase";
 import { supabase } from "../integrations/supabase/client";
 
@@ -55,8 +56,8 @@ const AuthModal = ({ open, onClose, onSuccess }: AuthModalProps) => {
   const handleGoogleSignIn = async () => {
     if (!isFirebaseConfigured()) {
       toast({
-        title: "Google Sign-In Unavailable",
-        description: "Google authentication is not configured. Please use email/password or try again later.",
+        title: "Google Sign-In Setup Required",
+        description: "Google authentication needs to be configured. Please use email/password for now or contact support.",
         variant: "destructive",
       });
       return;
@@ -81,8 +82,8 @@ const AuthModal = ({ open, onClose, onSuccess }: AuthModalProps) => {
     } catch (error: any) {
       console.error('Google sign-in error:', error);
       toast({
-        title: "Sign-In Failed",
-        description: error.message || "Failed to sign in with Google. Please try again.",
+        title: "Google Sign-In Failed",
+        description: error.message || "Failed to sign in with Google. Please try email/password instead.",
         variant: "destructive",
       });
     } finally {
@@ -124,22 +125,26 @@ const AuthModal = ({ open, onClose, onSuccess }: AuthModalProps) => {
 
     try {
       if (mode === 'signup') {
-        // Try Firebase first, then Supabase fallback
+        // Try Firebase first if configured
         if (isFirebaseConfigured()) {
-          const { user, error } = await signUpWithEmail(email, password, fullName);
-          
-          if (error) {
-            throw new Error(error);
-          }
+          try {
+            const { user, error } = await signUpWithEmail(email, password, fullName);
+            
+            if (error) {
+              throw new Error(error);
+            }
 
-          if (user) {
-            toast({
-              title: "Account Created! 🎉",
-              description: "Welcome to Smart Spend! You're now signed in.",
-            });
-            onSuccess();
-            onClose();
-            return;
+            if (user) {
+              toast({
+                title: "Account Created! 🎉",
+                description: "Welcome to Smart Spend! You're now signed in.",
+              });
+              onSuccess();
+              onClose();
+              return;
+            }
+          } catch (firebaseError: any) {
+            console.warn('Firebase signup failed, trying Supabase:', firebaseError);
           }
         }
 
@@ -182,18 +187,22 @@ const AuthModal = ({ open, onClose, onSuccess }: AuthModalProps) => {
         }
 
       } else if (mode === 'signin') {
-        // Try Firebase first, then Supabase fallback
+        // Try Firebase first if configured
         if (isFirebaseConfigured()) {
-          const { user, error } = await signInWithEmail(email, password);
-          
-          if (!error && user) {
-            toast({
-              title: "Welcome Back! 👋",
-              description: "You've been signed in successfully.",
-            });
-            onSuccess();
-            onClose();
-            return;
+          try {
+            const { user, error } = await signInWithEmail(email, password);
+            
+            if (!error && user) {
+              toast({
+                title: "Welcome Back! 👋",
+                description: "You've been signed in successfully.",
+              });
+              onSuccess();
+              onClose();
+              return;
+            }
+          } catch (firebaseError: any) {
+            console.warn('Firebase signin failed, trying Supabase:', firebaseError);
           }
         }
 
@@ -205,6 +214,34 @@ const AuthModal = ({ open, onClose, onSuccess }: AuthModalProps) => {
 
         if (error) {
           if (error.message.includes('Invalid login credentials')) {
+            // Try demo mode as final fallback
+            if (email && password.length >= 6) {
+              const mockUser = {
+                id: 'demo-user-' + Date.now(),
+                email: email,
+                user_metadata: { full_name: email.split('@')[0] },
+                created_at: new Date().toISOString(),
+                updated_at: new Date().toISOString(),
+              };
+              
+              const mockSession = {
+                user: mockUser,
+                timestamp: Date.now()
+              };
+              
+              localStorage.setItem('demo_user', JSON.stringify(mockUser));
+              localStorage.setItem('demo_session', JSON.stringify(mockSession));
+              
+              toast({
+                title: "Demo Mode Activated",
+                description: "You're now signed in using demo mode for testing.",
+              });
+              
+              onSuccess();
+              onClose();
+              return;
+            }
+            
             toast({
               title: "Invalid Credentials",
               description: "The email or password you entered is incorrect. Please try again.",
@@ -227,35 +264,6 @@ const AuthModal = ({ open, onClose, onSuccess }: AuthModalProps) => {
 
     } catch (error: any) {
       console.error('Auth error:', error);
-      
-      // Demo mode fallback for development
-      if (mode === 'signin' && email && password.length >= 6) {
-        const mockUser = {
-          id: 'demo-user-' + Date.now(),
-          email: email,
-          user_metadata: { full_name: email.split('@')[0] },
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-        };
-        
-        const mockSession = {
-          user: mockUser,
-          timestamp: Date.now()
-        };
-        
-        localStorage.setItem('demo_user', JSON.stringify(mockUser));
-        localStorage.setItem('demo_session', JSON.stringify(mockSession));
-        
-        toast({
-          title: "Demo Mode Activated",
-          description: "You're now signed in using demo mode.",
-        });
-        
-        onSuccess();
-        onClose();
-        return;
-      }
-      
       toast({
         title: mode === 'signup' ? "Sign Up Failed" : "Sign In Failed",
         description: error.message || "An error occurred. Please try again.",
@@ -350,14 +358,27 @@ const AuthModal = ({ open, onClose, onSuccess }: AuthModalProps) => {
         </DialogHeader>
 
         <div className="space-y-6">
+          {/* Google OAuth Status Alert */}
+          {!isFirebaseConfigured() && mode !== 'reset' && (
+            <Alert className="border-orange-200 bg-orange-50">
+              <AlertCircle className="h-4 w-4 text-orange-600" />
+              <AlertDescription className="text-orange-800">
+                <strong>Google Sign-In Setup Required:</strong> Google authentication is not configured. 
+                Please use email/password authentication or contact support for Google OAuth setup.
+              </AlertDescription>
+            </Alert>
+          )}
+
           {/* Google Sign In */}
           {mode !== 'reset' && (
             <>
               <Button
                 onClick={handleGoogleSignIn}
-                disabled={isLoading}
+                disabled={isLoading || !isFirebaseConfigured()}
                 variant="outline"
-                className="w-full flex items-center justify-center space-x-2 h-12"
+                className={`w-full flex items-center justify-center space-x-2 h-12 ${
+                  !isFirebaseConfigured() ? 'opacity-50 cursor-not-allowed' : ''
+                }`}
               >
                 <svg className="w-5 h-5" viewBox="0 0 24 24">
                   <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
@@ -365,7 +386,9 @@ const AuthModal = ({ open, onClose, onSuccess }: AuthModalProps) => {
                   <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
                   <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
                 </svg>
-                <span>Continue with Google</span>
+                <span>
+                  {isFirebaseConfigured() ? 'Continue with Google' : 'Google Sign-In (Setup Required)'}
+                </span>
               </Button>
 
               <div className="relative">
