@@ -23,7 +23,7 @@ const SEOWrapper: React.FC<SEOWrapperProps> = ({
       <Helmet>
         <title>{fullTitle}</title>
         <meta name="description" content={description} />
-        {keywords && <meta name="keywords" content={keywords} />}
+        {keywords && <meta name="keywords\" content={keywords} />}
         
         {/* Open Graph */}
         <meta property="og:title" content={fullTitle} />

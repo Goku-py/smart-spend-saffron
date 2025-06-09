@@ -157,7 +157,7 @@ const HelpCenter = () => {
             </CardHeader>
             <CardContent>
               {filteredFAQs.length > 0 ? (
-                <Accordion type="single" collapsible className="w-full">
+                <Accordion type="single\" collapsible className="w-full">
                   {filteredFAQs.map((faq) => (
                     <AccordionItem key={faq.id} value={faq.id}>
                       <AccordionTrigger className="text-left">
