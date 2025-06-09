@@ -18,7 +18,7 @@ Smart Spend Saffron is a sleek, AI-powered web app that makes budgeting, expense
 
 ## 🛠️ Tech Stack
 
-- **Backend**: Python (Flask/Django), Supabase for data
+- **Backend**: Nodejs, Supabase for data
 - **Frontend**: JavaScript, React, Tailwind CSS
 - **Database**: PostgreSQL (production), SQLite (development)
 - **AI**: Lovable’s AI-driven development tools
@@ -27,7 +27,6 @@ Smart Spend Saffron is a sleek, AI-powered web app that makes budgeting, expense
 ## 🚀 Get Started
 
 ### Prerequisites
-- Python 3.8+
 - Node.js (for frontend dependencies)
 - Git
 - A free [Supabase](https://supabase.com) account (optional for backend)
@@ -62,7 +61,8 @@ Smart Spend Saffron is a sleek, AI-powered web app that makes budgeting, expense
 
 5. **Run the App**:
    ```bash
-   python app.py
+   npm install
+   npm run dev
    ```
    Visit `http://localhost:5000` in your browser.
 
@@ -113,4 +113,4 @@ Got questions? Reach out!
 
 ---
 
-Built with ❤️ using [Lovable](https://lovable.dev). Spend smart, live better!
+Spend smart, live better!
