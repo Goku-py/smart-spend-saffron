@@ -135,7 +135,7 @@ const Notifications = () => {
                   <CardTitle className="text-red-700 flex items-center">
                     <AlertTriangle className="h-5 w-5 mr-2" />
                     Urgent Alerts
-                    <Badge variant="destructive" className="ml-2">
+                    <Badge variant="destructive\" className="ml-2">
                       {urgentNotifications.length}
                     </Badge>
                   </CardTitle>
@@ -249,7 +249,7 @@ const Notifications = () => {
                                 <div className="w-2 h-2 bg-orange-500 rounded-full" />
                               )}
                               {notification.isUrgent && (
-                                <Badge variant="destructive" className="text-xs">
+                                <Badge variant="destructive\" className="text-xs">
                                   Urgent
                                 </Badge>
                               )}
