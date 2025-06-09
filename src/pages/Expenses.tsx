@@ -3,26 +3,42 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import Layout from "@/components/Layout";
-import AddExpenseModal from "@/components/AddExpenseModal";
+import ExpenseModal from "@/components/ExpenseModal";
 import { sampleExpenses, categories } from "../data/mockData";
 import { useToast } from "@/hooks/use-toast";
 import { useCurrency } from "@/contexts/CurrencyContext";
 import { useTranslation } from "@/contexts/TranslationContext";
+import { Pencil, Trash2 } from "lucide-react";
+
+interface Expense {
+  id: string;
+  amount: number;
+  category: string;
+  description: string;
+  merchant: string;
+  method: string;
+  date: string;
+}
 
 const Expenses = () => {
-  const [showAddExpense, setShowAddExpense] = useState(false);
+  const [showExpenseModal, setShowExpenseModal] = useState(false);
+  const [modalMode, setModalMode] = useState<'add' | 'edit'>('add');
+  const [selectedExpense, setSelectedExpense] = useState<Expense | null>(null);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [expenseToDelete, setExpenseToDelete] = useState<string | null>(null);
   const [filter, setFilter] = useState('all');
   const [categoryFilter, setCategoryFilter] = useState('all');
   const [searchTerm, setSearchTerm] = useState('');
-  const [expenses, setExpenses] = useState(sampleExpenses);
+  const [expenses, setExpenses] = useState<Expense[]>(sampleExpenses);
   const { toast } = useToast();
   const { formatCurrency } = useCurrency();
   const { t } = useTranslation();
 
   const handleAddExpense = (expenseData: any) => {
-    const newExpense = {
-      id: Date.now().toString(), // Convert to string to match interface
+    const newExpense: Expense = {
+      id: Date.now().toString(),
       ...expenseData,
       date: expenseData.date || new Date().toISOString().split('T')[0]
     };
@@ -33,22 +49,46 @@ const Expenses = () => {
     });
   };
 
-  const handleEditExpense = (id: string) => { // Change parameter type to string
-    console.log('Editing expense with ID:', id);
+  const handleEditExpense = (expense: Expense) => {
+    setSelectedExpense(expense);
+    setModalMode('edit');
+    setShowExpenseModal(true);
+  };
+
+  const handleUpdateExpense = (id: string, updatedData: any) => {
+    setExpenses(prev => prev.map(expense => 
+      expense.id === id 
+        ? { ...expense, ...updatedData }
+        : expense
+    ));
     toast({
-      title: t('editFeature'),
-      description: t('editFunctionalityWillBeImplemented'),
+      title: "Expense Updated! ✅",
+      description: `${formatCurrency(updatedData.amount)} expense updated successfully`,
     });
   };
 
-  const handleDeleteExpense = (id: string) => { // Change parameter type to string
-    console.log('Deleting expense with ID:', id);
-    setExpenses(prev => prev.filter(expense => expense.id !== id)); // This comparison now works correctly
-    toast({
-      title: t('expenseDeleted'),
-      description: t('expenseHasBeenRemoved'),
-      variant: "destructive",
-    });
+  const handleDeleteExpense = (id: string) => {
+    setExpenseToDelete(id);
+    setShowDeleteDialog(true);
+  };
+
+  const confirmDeleteExpense = () => {
+    if (expenseToDelete) {
+      setExpenses(prev => prev.filter(expense => expense.id !== expenseToDelete));
+      toast({
+        title: t('expenseDeleted'),
+        description: t('expenseHasBeenRemoved'),
+        variant: "destructive",
+      });
+      setShowDeleteDialog(false);
+      setExpenseToDelete(null);
+    }
+  };
+
+  const openAddModal = () => {
+    setSelectedExpense(null);
+    setModalMode('add');
+    setShowExpenseModal(true);
   };
 
   const filteredExpenses = expenses.filter(expense => {
@@ -85,7 +125,7 @@ const Expenses = () => {
             <p className="text-gray-600">{t('trackAndManageTransactions')}</p>
           </div>
           <Button 
-            onClick={() => setShowAddExpense(true)}
+            onClick={openAddModal}
             className="bg-gradient-to-r from-green-500 to-green-600 text-white"
           >
             {t('addExpense')}
@@ -200,32 +240,76 @@ const Expenses = () => {
                       <Button 
                         variant="outline" 
                         size="sm"
-                        onClick={() => handleEditExpense(expense.id)}
+                        onClick={() => handleEditExpense(expense)}
+                        className="p-2"
                       >
-                        {t('edit')}
+                        <Pencil className="h-4 w-4" />
                       </Button>
                       <Button 
                         variant="outline" 
                         size="sm" 
-                        className="text-red-600 hover:text-red-700"
+                        className="text-red-600 hover:text-red-700 p-2"
                         onClick={() => handleDeleteExpense(expense.id)}
                       >
-                        {t('delete')}
+                        <Trash2 className="h-4 w-4" />
                       </Button>
                     </div>
                   </div>
                 </div>
               ))}
+              
+              {filteredExpenses.length === 0 && (
+                <div className="text-center py-8">
+                  <div className="text-4xl mb-4">💳</div>
+                  <h3 className="text-lg font-semibold mb-2">No expenses found</h3>
+                  <p className="text-gray-600 mb-4">
+                    {searchTerm || categoryFilter !== 'all' || filter !== 'all' 
+                      ? 'Try adjusting your filters to see more expenses.'
+                      : 'Start tracking your expenses by adding your first transaction.'
+                    }
+                  </p>
+                  {(!searchTerm && categoryFilter === 'all' && filter === 'all') && (
+                    <Button onClick={openAddModal} className="bg-gradient-to-r from-green-500 to-green-600 text-white">
+                      Add Your First Expense
+                    </Button>
+                  )}
+                </div>
+              )}
             </div>
           </CardContent>
         </Card>
       </div>
 
-      <AddExpenseModal 
-        open={showAddExpense} 
-        onClose={() => setShowAddExpense(false)}
+      {/* Expense Modal */}
+      <ExpenseModal 
+        open={showExpenseModal} 
+        onClose={() => setShowExpenseModal(false)}
         onExpenseAdded={handleAddExpense}
+        onExpenseUpdated={handleUpdateExpense}
+        expense={selectedExpense}
+        mode={modalMode}
       />
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Expense</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete this expense? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmDeleteExpense}
+              className="bg-red-600 hover:bg-red-700"
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Layout>
   );
 };

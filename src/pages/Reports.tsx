@@ -1,16 +1,91 @@
-
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Button } from "@/components/ui/button";
 import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import Layout from "@/components/Layout";
-import { chartData } from "../data/mockData";
+import { useAnalytics } from "../hooks/useAnalytics";
+import { useCurrency } from "../contexts/CurrencyContext";
+import { RefreshCw, Download, TrendingUp, TrendingDown } from "lucide-react";
 
 const Reports = () => {
   const [selectedPeriod, setSelectedPeriod] = useState('month');
   const [activeChart, setActiveChart] = useState('category');
+  const { data: analyticsData, loading, error, refresh } = useAnalytics(selectedPeriod);
+  const { formatCurrency } = useCurrency();
 
-  const COLORS = ['#FF7518', '#138808', '#1E40AF', '#F59E0B', '#EF4444'];
+  const COLORS = ['#FF7518', '#138808', '#1E40AF', '#F59E0B', '#EF4444', '#8B5CF6', '#EC4899'];
+
+  const handleExportData = () => {
+    if (!analyticsData) return;
+
+    const exportData = {
+      period: selectedPeriod,
+      generatedAt: new Date().toISOString(),
+      summary: {
+        totalSpending: analyticsData.totalSpending,
+        averageDaily: analyticsData.averageDaily,
+        topCategory: analyticsData.topCategory,
+        savingsThisMonth: analyticsData.savingsThisMonth
+      },
+      categoryBreakdown: analyticsData.categorySpending,
+      monthlyTrends: analyticsData.monthlyTrends
+    };
+
+    const dataStr = JSON.stringify(exportData, null, 2);
+    const dataBlob = new Blob([dataStr], { type: 'application/json' });
+    const url = URL.createObjectURL(dataBlob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `spending-report-${selectedPeriod}-${new Date().toISOString().split('T')[0]}.json`;
+    link.click();
+    URL.revokeObjectURL(url);
+  };
+
+  if (loading) {
+    return (
+      <Layout>
+        <div className="flex items-center justify-center min-h-[400px]">
+          <div className="text-center">
+            <RefreshCw className="h-8 w-8 animate-spin mx-auto mb-4 text-orange-600" />
+            <p className="text-gray-600">Loading analytics...</p>
+          </div>
+        </div>
+      </Layout>
+    );
+  }
+
+  if (error) {
+    return (
+      <Layout>
+        <div className="flex items-center justify-center min-h-[400px]">
+          <div className="text-center">
+            <div className="text-red-500 text-4xl mb-4">⚠️</div>
+            <h3 className="text-lg font-semibold mb-2">Error Loading Data</h3>
+            <p className="text-gray-600 mb-4">{error}</p>
+            <Button onClick={refresh} variant="outline">
+              <RefreshCw className="h-4 w-4 mr-2" />
+              Try Again
+            </Button>
+          </div>
+        </div>
+      </Layout>
+    );
+  }
+
+  if (!analyticsData) {
+    return (
+      <Layout>
+        <div className="flex items-center justify-center min-h-[400px]">
+          <div className="text-center">
+            <div className="text-4xl mb-4">📊</div>
+            <h3 className="text-lg font-semibold mb-2">No Data Available</h3>
+            <p className="text-gray-600">Start adding expenses to see your analytics.</p>
+          </div>
+        </div>
+      </Layout>
+    );
+  }
 
   return (
     <Layout>
@@ -21,16 +96,85 @@ const Reports = () => {
             <h1 className="text-2xl font-bold text-gray-800">Reports & Analytics</h1>
             <p className="text-gray-600">Analyze your spending patterns and trends</p>
           </div>
-          <Select value={selectedPeriod} onValueChange={setSelectedPeriod}>
-            <SelectTrigger className="w-48">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="month">This Month</SelectItem>
-              <SelectItem value="lastMonth">Last Month</SelectItem>
-              <SelectItem value="quarter">Last 3 Months</SelectItem>
-            </SelectContent>
-          </Select>
+          <div className="flex space-x-2">
+            <Button onClick={refresh} variant="outline" size="sm">
+              <RefreshCw className="h-4 w-4 mr-2" />
+              Refresh
+            </Button>
+            <Button onClick={handleExportData} variant="outline" size="sm">
+              <Download className="h-4 w-4 mr-2" />
+              Export
+            </Button>
+            <Select value={selectedPeriod} onValueChange={setSelectedPeriod}>
+              <SelectTrigger className="w-48">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="month">This Month</SelectItem>
+                <SelectItem value="lastMonth">Last Month</SelectItem>
+                <SelectItem value="quarter">Last 3 Months</SelectItem>
+                <SelectItem value="year">This Year</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+
+        {/* Key Metrics */}
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+          <Card className="bg-gradient-to-r from-blue-50 to-blue-100 border-blue-200">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-blue-700 text-sm font-medium">Total Spending</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-blue-700">
+                {formatCurrency(analyticsData.totalSpending)}
+              </div>
+              <p className="text-sm text-blue-600 mt-1">
+                {formatCurrency(analyticsData.averageDaily)}/day average
+              </p>
+            </CardContent>
+          </Card>
+
+          <Card className="bg-gradient-to-r from-green-50 to-green-100 border-green-200">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-green-700 text-sm font-medium flex items-center">
+                <TrendingDown className="h-4 w-4 mr-1" />
+                Savings
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-green-700">
+                {formatCurrency(analyticsData.savingsThisMonth)}
+              </div>
+              <p className="text-sm text-green-600 mt-1">vs last month</p>
+            </CardContent>
+          </Card>
+
+          <Card className="bg-gradient-to-r from-orange-50 to-orange-100 border-orange-200">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-orange-700 text-sm font-medium">Top Category</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-orange-700">
+                {analyticsData.topCategory}
+              </div>
+              <p className="text-sm text-orange-600 mt-1">
+                {analyticsData.categorySpending[0]?.percentage}% of spending
+              </p>
+            </CardContent>
+          </Card>
+
+          <Card className="bg-gradient-to-r from-purple-50 to-purple-100 border-purple-200">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-purple-700 text-sm font-medium">Categories</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-purple-700">
+                {analyticsData.categorySpending.length}
+              </div>
+              <p className="text-sm text-purple-600 mt-1">active categories</p>
+            </CardContent>
+          </Card>
         </div>
 
         {/* Chart Tabs */}
@@ -39,7 +183,7 @@ const Reports = () => {
             <div className="flex space-x-4">
               <button
                 onClick={() => setActiveChart('category')}
-                className={`px-4 py-2 rounded-lg font-medium ${
+                className={`px-4 py-2 rounded-lg font-medium transition-colors ${
                   activeChart === 'category' 
                     ? 'bg-orange-500 text-white' 
                     : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
@@ -49,7 +193,7 @@ const Reports = () => {
               </button>
               <button
                 onClick={() => setActiveChart('trends')}
-                className={`px-4 py-2 rounded-lg font-medium ${
+                className={`px-4 py-2 rounded-lg font-medium transition-colors ${
                   activeChart === 'trends' 
                     ? 'bg-orange-500 text-white' 
                     : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
@@ -65,7 +209,7 @@ const Reports = () => {
                 <ResponsiveContainer width="100%" height="100%">
                   <PieChart>
                     <Pie
-                      data={chartData.categorySpending}
+                      data={analyticsData.categorySpending}
                       cx="50%"
                       cy="50%"
                       labelLine={false}
@@ -74,21 +218,21 @@ const Reports = () => {
                       fill="#8884d8"
                       dataKey="value"
                     >
-                      {chartData.categorySpending.map((entry, index) => (
+                      {analyticsData.categorySpending.map((entry, index) => (
                         <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                       ))}
                     </Pie>
-                    <Tooltip formatter={(value) => [`₹${value.toLocaleString('en-IN')}`, 'Amount']} />
+                    <Tooltip formatter={(value) => [formatCurrency(Number(value)), 'Amount']} />
                   </PieChart>
                 </ResponsiveContainer>
               ) : (
                 <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={chartData.monthlyTrends}>
+                  <BarChart data={analyticsData.monthlyTrends}>
                     <CartesianGrid strokeDasharray="3 3" />
                     <XAxis dataKey="month" />
                     <YAxis />
-                    <Tooltip formatter={(value) => [`₹${value.toLocaleString('en-IN')}`, 'Spending']} />
-                    <Bar dataKey="spending" fill="#FF7518" />
+                    <Tooltip formatter={(value) => [formatCurrency(Number(value)), 'Spending']} />
+                    <Bar dataKey="spending" fill="#FF7518" radius={[4, 4, 0, 0]} />
                   </BarChart>
                 </ResponsiveContainer>
               )}
@@ -96,40 +240,33 @@ const Reports = () => {
           </CardContent>
         </Card>
 
-        {/* Insights Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <Card className="bg-gradient-to-r from-green-50 to-green-100 border-green-200">
-            <CardHeader>
-              <CardTitle className="text-green-700">💰 Savings This Month</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-green-700">₹2,500</div>
-              <p className="text-sm text-green-600">15% more than last month</p>
-            </CardContent>
-          </Card>
+        {/* Category Breakdown */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Category Breakdown</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              {analyticsData.categorySpending.map((category, index) => (
+                <div key={category.name} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                  <div className="flex items-center space-x-3">
+                    <div 
+                      className="w-4 h-4 rounded-full"
+                      style={{ backgroundColor: COLORS[index % COLORS.length] }}
+                    />
+                    <span className="font-medium">{category.name}</span>
+                  </div>
+                  <div className="text-right">
+                    <div className="font-semibold">{formatCurrency(category.value)}</div>
+                    <div className="text-sm text-gray-600">{category.percentage}%</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
 
-          <Card className="bg-gradient-to-r from-blue-50 to-blue-100 border-blue-200">
-            <CardHeader>
-              <CardTitle className="text-blue-700">📈 Highest Spending Day</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-blue-700">Saturday</div>
-              <p className="text-sm text-blue-600">₹1,200 average spending</p>
-            </CardContent>
-          </Card>
-
-          <Card className="bg-gradient-to-r from-purple-50 to-purple-100 border-purple-200">
-            <CardHeader>
-              <CardTitle className="text-purple-700">🎉 Festival Impact</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-purple-700">+40%</div>
-              <p className="text-sm text-purple-600">vs last year festivals</p>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Detailed Insights */}
+        {/* Insights */}
         <Card>
           <CardHeader>
             <CardTitle>📊 Spending Insights</CardTitle>
@@ -137,25 +274,27 @@ const Reports = () => {
           <CardContent>
             <div className="space-y-4">
               <div className="p-4 bg-orange-50 rounded-lg border-l-4 border-orange-400">
-                <h4 className="font-medium text-orange-800">Weekend Spending Pattern</h4>
+                <h4 className="font-medium text-orange-800">Spending Pattern</h4>
                 <p className="text-sm text-orange-700 mt-1">
-                  You tend to spend ₹3,200 more on weekends, primarily on food delivery and entertainment.
+                  Your highest spending category is {analyticsData.topCategory} at {analyticsData.categorySpending[0]?.percentage}% of total expenses.
                 </p>
               </div>
               
               <div className="p-4 bg-blue-50 rounded-lg border-l-4 border-blue-400">
-                <h4 className="font-medium text-blue-800">UPI Usage Analysis</h4>
+                <h4 className="font-medium text-blue-800">Daily Average</h4>
                 <p className="text-sm text-blue-700 mt-1">
-                  85% of your transactions are via UPI, with an average transaction value of ₹420.
+                  You spend an average of {formatCurrency(analyticsData.averageDaily)} per day this {selectedPeriod}.
                 </p>
               </div>
               
-              <div className="p-4 bg-green-50 rounded-lg border-l-4 border-green-400">
-                <h4 className="font-medium text-green-800">Cost Optimization Opportunity</h4>
-                <p className="text-sm text-green-700 mt-1">
-                  Switching to monthly subscription plans could save you ₹800 per month.
-                </p>
-              </div>
+              {analyticsData.savingsThisMonth > 0 && (
+                <div className="p-4 bg-green-50 rounded-lg border-l-4 border-green-400">
+                  <h4 className="font-medium text-green-800">Great Job!</h4>
+                  <p className="text-sm text-green-700 mt-1">
+                    You've saved {formatCurrency(analyticsData.savingsThisMonth)} compared to last month. Keep it up!
+                  </p>
+                </div>
+              )}
             </div>
           </CardContent>
         </Card>
