@@ -33,33 +33,45 @@ Deployment: Global edge network via Lovable
 Prerequisites:
 
 Node.js (for frontend dependencies)
+
 Git
+
 A free Supabase account (optional for backend)
 
 Installation:
 
 Clone the Repo:
+
 git clone https://github.com/Goku-py/smart-spend-saffron.git
+
 cd smart-spend-saffron
 
 
 Set Up Virtual Environment:
+
 python -m venv venv
+
 source venv/bin/activate  # Windows: venv\Scripts\activate
 
 
 Install Dependencies:
+
 pip install -r requirements.txt
+
 npm install  # For frontend
 
 
 Configure Environment:Create a .env file:
+
 SECRET_KEY=your-secret-key
+
 SUPABASE_URL=your-supabase-url
+
 SUPABASE_KEY=your-supabase-key
 
 
 Run the App:
+
 npm install
 
 npm run dev
@@ -68,9 +80,13 @@ npm run dev
 🎯 Usage
 
 Sign Up: Create an account or log in via Google (powered by Supabase Auth).
+
 Add Transactions: Input expenses and assign categories like "Groceries" or "Travel."
+
 Set Budgets: Define monthly limits and track progress.
+
 Explore Insights: Check the dashboard for spending trends and AI-driven tips.
+
 Stay Synced: Access your data on any device with real-time updates.
 
 📂 Project Structure
@@ -88,19 +104,29 @@ smart-spend-saffron/
 We love contributions! To get involved:
 
 Fork the repo.
+
 Create a branch: git checkout -b feature/awesome-feature.
+
 Commit changes: git commit -m "Add awesome feature".
+
 Push: git push origin feature/awesome-feature.
+
 Open a Pull Request.
 
 Please follow our Code of Conduct and ensure tests pass.
+
 📜 License
+
 Distributed under the MIT License. See LICENSE for details.
+
 📬 Contact
+
 Got questions? Reach out!  
 
 GitHub: Goku-py  
+
 Email: smartspendsaffron@gmail.com  
+
 Project Link: Smart Spend Saffron
 
 Spend smart, live better!
