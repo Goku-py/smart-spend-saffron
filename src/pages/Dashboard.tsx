@@ -11,7 +11,7 @@ import { useCurrency } from "../contexts/CurrencyContext";
 import { useTranslation } from "../contexts/TranslationContext";
 import { useNotifications } from "../contexts/NotificationContext";
 import { sampleExpenses, budgetData } from "../data/mockData";
-import AddExpenseModal from "@/components/AddExpenseModal";
+import ExpenseModal from "@/components/ExpenseModal";
 
 const Dashboard = () => {
   const { user } = useAuth();
@@ -184,7 +184,7 @@ const Dashboard = () => {
         </Card>
       </div>
 
-      <AddExpenseModal 
+      <ExpenseModal 
         open={showAddExpense} 
         onClose={() => setShowAddExpense(false)}
         onExpenseAdded={handleExpenseAdded}
