@@ -7,6 +7,7 @@ import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import Layout from "@/components/Layout";
 import DemoModeIndicator from "@/components/DemoModeIndicator";
+import AIInsights from "@/components/AIInsights";
 import { useAuth } from "../hooks/useAuth";
 import { useCurrency } from "../contexts/CurrencyContext";
 import { useNotifications } from "../contexts/NotificationContext";
@@ -27,12 +28,6 @@ const Dashboard = () => {
   const spentPercentage = (totalSpent / totalBudget) * 100;
 
   const recentTransactions = sampleExpenses.slice(0, 5);
-
-  const aiInsights = [
-    "💡 You spend ₹3,200 more on weekends",
-    "💡 Switch to monthly Jio plan, save ₹240", 
-    "💡 Grocery spending down 12% this month"
-  ];
 
   const handleAddExpense = () => {
     setShowAddExpense(true);
@@ -82,14 +77,14 @@ const Dashboard = () => {
 
         {/* Welcome Header */}
         <div>
-          <h1 className="text-2xl font-bold text-gray-800">
+          <h1 className="text-2xl font-bold">
             {t('namaste')}, {getUserDisplayName()}! 🙏
           </h1>
-          <p className="text-gray-600">Here's your spending overview for June 2024</p>
+          <p className="text-muted-foreground">Here's your spending overview for June 2024</p>
         </div>
 
         {/* Budget Overview */}
-        <Card className="bg-gradient-to-r from-orange-50 to-yellow-50 border-orange-200">
+        <Card className="bg-gradient-to-r from-orange-50 to-yellow-50 dark:from-orange-950 dark:to-yellow-950 border-orange-200 dark:border-orange-800">
           <CardHeader>
             <CardTitle className="flex items-center justify-between">
               <span>{t('monthlyBudget')}</span>
@@ -106,7 +101,7 @@ const Dashboard = () => {
               value={spentPercentage} 
               className="h-3 mb-3"
             />
-            <div className="flex justify-between text-sm text-gray-600">
+            <div className="flex justify-between text-sm text-muted-foreground">
               <span>{t('spent')}: {formatCurrency(totalSpent)}</span>
               <span>{t('budget')}: {formatCurrency(totalBudget)}</span>
             </div>
@@ -127,7 +122,7 @@ const Dashboard = () => {
           <Button 
             onClick={handleSetBudget}
             variant="outline"
-            className="h-20 border-orange-200 hover:bg-orange-50"
+            className="h-20 border-orange-200 hover:bg-orange-50 dark:border-orange-800 dark:hover:bg-orange-950"
           >
             <div className="text-center">
               <div className="text-2xl mb-1">🎯</div>
@@ -144,7 +139,7 @@ const Dashboard = () => {
           <CardContent>
             <div className="space-y-3">
               {recentTransactions.map((transaction) => (
-                <div key={transaction.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                <div key={transaction.id} className="flex items-center justify-between p-3 bg-muted rounded-lg">
                   <div className="flex items-center space-x-3">
                     <div className="text-2xl">
                       {transaction.category === 'Food & Dining' ? '🍽️' :
@@ -154,12 +149,12 @@ const Dashboard = () => {
                     </div>
                     <div>
                       <div className="font-medium">{transaction.description}</div>
-                      <div className="text-sm text-gray-600">{transaction.merchant} • {transaction.method}</div>
+                      <div className="text-sm text-muted-foreground">{transaction.merchant} • {transaction.method}</div>
                     </div>
                   </div>
                   <div className="text-right">
                     <div className="font-medium text-red-600">-{formatCurrency(transaction.amount)}</div>
-                    <div className="text-xs text-gray-500">{transaction.date}</div>
+                    <div className="text-xs text-muted-foreground">{transaction.date}</div>
                   </div>
                 </div>
               ))}
@@ -168,20 +163,7 @@ const Dashboard = () => {
         </Card>
 
         {/* AI Insights */}
-        <Card>
-          <CardHeader>
-            <CardTitle>{t('aiInsights')}</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-2">
-              {aiInsights.map((insight, index) => (
-                <div key={index} className="p-3 bg-blue-50 rounded-lg border-l-4 border-blue-400">
-                  <p className="text-sm text-blue-800">{insight}</p>
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
+        <AIInsights />
       </div>
 
       <ExpenseModal 

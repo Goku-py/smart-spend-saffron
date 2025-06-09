@@ -50,7 +50,7 @@ const Reports = () => {
         <div className="flex items-center justify-center min-h-[400px]">
           <div className="text-center">
             <RefreshCw className="h-8 w-8 animate-spin mx-auto mb-4 text-orange-600" />
-            <p className="text-gray-600">Loading analytics...</p>
+            <p className="text-muted-foreground">Loading analytics...</p>
           </div>
         </div>
       </Layout>
@@ -64,7 +64,7 @@ const Reports = () => {
           <div className="text-center">
             <div className="text-red-500 text-4xl mb-4">⚠️</div>
             <h3 className="text-lg font-semibold mb-2">Error Loading Data</h3>
-            <p className="text-gray-600 mb-4">{error}</p>
+            <p className="text-muted-foreground mb-4">{error}</p>
             <Button onClick={refresh} variant="outline">
               <RefreshCw className="h-4 w-4 mr-2" />
               Try Again
@@ -82,7 +82,7 @@ const Reports = () => {
           <div className="text-center">
             <div className="text-4xl mb-4">📊</div>
             <h3 className="text-lg font-semibold mb-2">No Data Available</h3>
-            <p className="text-gray-600">Start adding expenses to see your analytics.</p>
+            <p className="text-muted-foreground">Start adding expenses to see your analytics.</p>
           </div>
         </div>
       </Layout>
@@ -95,8 +95,8 @@ const Reports = () => {
         {/* Header */}
         <div className="flex justify-between items-center">
           <div>
-            <h1 className="text-2xl font-bold text-gray-800">{t('reports')} & Analytics</h1>
-            <p className="text-gray-600">Analyze your spending patterns and trends</p>
+            <h1 className="text-2xl font-bold">{t('reports')} & Analytics</h1>
+            <p className="text-muted-foreground">Analyze your spending patterns and trends</p>
           </div>
           <div className="flex space-x-2">
             <Button onClick={refresh} variant="outline" size="sm">
@@ -123,58 +123,58 @@ const Reports = () => {
 
         {/* Key Metrics */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-          <Card className="bg-gradient-to-r from-blue-50 to-blue-100 border-blue-200">
+          <Card className="bg-gradient-to-r from-blue-50 to-blue-100 dark:from-blue-950 dark:to-blue-900 border-blue-200 dark:border-blue-800">
             <CardHeader className="pb-3">
-              <CardTitle className="text-blue-700 text-sm font-medium">Total Spending</CardTitle>
+              <CardTitle className="text-blue-700 dark:text-blue-300 text-sm font-medium">Total Spending</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-blue-700">
+              <div className="text-2xl font-bold text-blue-700 dark:text-blue-300">
                 {formatCurrency(analyticsData.totalSpending)}
               </div>
-              <p className="text-sm text-blue-600 mt-1">
+              <p className="text-sm text-blue-600 dark:text-blue-400 mt-1">
                 {formatCurrency(analyticsData.averageDaily)}/day average
               </p>
             </CardContent>
           </Card>
 
-          <Card className="bg-gradient-to-r from-green-50 to-green-100 border-green-200">
+          <Card className="bg-gradient-to-r from-green-50 to-green-100 dark:from-green-950 dark:to-green-900 border-green-200 dark:border-green-800">
             <CardHeader className="pb-3">
-              <CardTitle className="text-green-700 text-sm font-medium flex items-center">
+              <CardTitle className="text-green-700 dark:text-green-300 text-sm font-medium flex items-center">
                 <TrendingDown className="h-4 w-4 mr-1" />
                 Savings
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-green-700">
+              <div className="text-2xl font-bold text-green-700 dark:text-green-300">
                 {formatCurrency(analyticsData.savingsThisMonth)}
               </div>
-              <p className="text-sm text-green-600 mt-1">vs last month</p>
+              <p className="text-sm text-green-600 dark:text-green-400 mt-1">vs last month</p>
             </CardContent>
           </Card>
 
-          <Card className="bg-gradient-to-r from-orange-50 to-orange-100 border-orange-200">
+          <Card className="bg-gradient-to-r from-orange-50 to-orange-100 dark:from-orange-950 dark:to-orange-900 border-orange-200 dark:border-orange-800">
             <CardHeader className="pb-3">
-              <CardTitle className="text-orange-700 text-sm font-medium">Top Category</CardTitle>
+              <CardTitle className="text-orange-700 dark:text-orange-300 text-sm font-medium">Top Category</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-orange-700">
+              <div className="text-2xl font-bold text-orange-700 dark:text-orange-300">
                 {analyticsData.topCategory}
               </div>
-              <p className="text-sm text-orange-600 mt-1">
+              <p className="text-sm text-orange-600 dark:text-orange-400 mt-1">
                 {analyticsData.categorySpending[0]?.percentage}% of spending
               </p>
             </CardContent>
           </Card>
 
-          <Card className="bg-gradient-to-r from-purple-50 to-purple-100 border-purple-200">
+          <Card className="bg-gradient-to-r from-purple-50 to-purple-100 dark:from-purple-950 dark:to-purple-900 border-purple-200 dark:border-purple-800">
             <CardHeader className="pb-3">
-              <CardTitle className="text-purple-700 text-sm font-medium">{t('categories')}</CardTitle>
+              <CardTitle className="text-purple-700 dark:text-purple-300 text-sm font-medium">{t('categories')}</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-purple-700">
+              <div className="text-2xl font-bold text-purple-700 dark:text-purple-300">
                 {analyticsData.categorySpending.length}
               </div>
-              <p className="text-sm text-purple-600 mt-1">active categories</p>
+              <p className="text-sm text-purple-600 dark:text-purple-400 mt-1">active categories</p>
             </CardContent>
           </Card>
         </div>
@@ -188,7 +188,7 @@ const Reports = () => {
                 className={`px-4 py-2 rounded-lg font-medium transition-colors ${
                   activeChart === 'category' 
                     ? 'bg-orange-500 text-white' 
-                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                    : 'bg-muted text-muted-foreground hover:bg-accent'
                 }`}
               >
                 Spending by Category
@@ -198,7 +198,7 @@ const Reports = () => {
                 className={`px-4 py-2 rounded-lg font-medium transition-colors ${
                   activeChart === 'trends' 
                     ? 'bg-orange-500 text-white' 
-                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                    : 'bg-muted text-muted-foreground hover:bg-accent'
                 }`}
               >
                 Monthly Trends
@@ -208,7 +208,7 @@ const Reports = () => {
           <CardContent>
             <div className="h-80">
               {activeChart === 'category' ? (
-                <ResponsiveContainer width="100%\" height="100%">
+                <ResponsiveContainer width="100%" height="100%">
                   <PieChart>
                     <Pie
                       data={analyticsData.categorySpending}
@@ -250,7 +250,7 @@ const Reports = () => {
           <CardContent>
             <div className="space-y-4">
               {analyticsData.categorySpending.map((category, index) => (
-                <div key={category.name} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                <div key={category.name} className="flex items-center justify-between p-3 bg-muted rounded-lg">
                   <div className="flex items-center space-x-3">
                     <div 
                       className="w-4 h-4 rounded-full"
@@ -260,7 +260,7 @@ const Reports = () => {
                   </div>
                   <div className="text-right">
                     <div className="font-semibold">{formatCurrency(category.value)}</div>
-                    <div className="text-sm text-gray-600">{category.percentage}%</div>
+                    <div className="text-sm text-muted-foreground">{category.percentage}%</div>
                   </div>
                 </div>
               ))}
@@ -275,24 +275,24 @@ const Reports = () => {
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              <div className="p-4 bg-orange-50 rounded-lg border-l-4 border-orange-400">
-                <h4 className="font-medium text-orange-800">Spending Pattern</h4>
-                <p className="text-sm text-orange-700 mt-1">
+              <div className="p-4 bg-orange-50 dark:bg-orange-950 rounded-lg border-l-4 border-orange-400">
+                <h4 className="font-medium text-orange-800 dark:text-orange-300">Spending Pattern</h4>
+                <p className="text-sm text-orange-700 dark:text-orange-400 mt-1">
                   Your highest spending category is {analyticsData.topCategory} at {analyticsData.categorySpending[0]?.percentage}% of total expenses.
                 </p>
               </div>
               
-              <div className="p-4 bg-blue-50 rounded-lg border-l-4 border-blue-400">
-                <h4 className="font-medium text-blue-800">Daily Average</h4>
-                <p className="text-sm text-blue-700 mt-1">
+              <div className="p-4 bg-blue-50 dark:bg-blue-950 rounded-lg border-l-4 border-blue-400">
+                <h4 className="font-medium text-blue-800 dark:text-blue-300">Daily Average</h4>
+                <p className="text-sm text-blue-700 dark:text-blue-400 mt-1">
                   You spend an average of {formatCurrency(analyticsData.averageDaily)} per day this {selectedPeriod}.
                 </p>
               </div>
               
               {analyticsData.savingsThisMonth > 0 && (
-                <div className="p-4 bg-green-50 rounded-lg border-l-4 border-green-400">
-                  <h4 className="font-medium text-green-800">Great Job!</h4>
-                  <p className="text-sm text-green-700 mt-1">
+                <div className="p-4 bg-green-50 dark:bg-green-950 rounded-lg border-l-4 border-green-400">
+                  <h4 className="font-medium text-green-800 dark:text-green-300">Great Job!</h4>
+                  <p className="text-sm text-green-700 dark:text-green-400 mt-1">
                     You've saved {formatCurrency(analyticsData.savingsThisMonth)} compared to last month. Keep it up!
                   </p>
                 </div>

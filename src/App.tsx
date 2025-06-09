@@ -4,6 +4,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { CurrencyProvider } from "./contexts/CurrencyContext";
 import { TranslationProvider } from "./contexts/TranslationContext";
 import { NotificationProvider } from "./contexts/NotificationContext";
+import { ThemeProvider } from "./contexts/ThemeContext";
 import ErrorBoundary from "./components/ErrorBoundary";
 import NetworkStatus from "./components/NetworkStatus";
 import Home from "./pages/Home";
@@ -47,61 +48,63 @@ function App() {
   return (
     <ErrorBoundary>
       <QueryClientProvider client={queryClient}>
-        <CurrencyProvider>
-          <TranslationProvider>
-            <NotificationProvider>
-              <NetworkStatus />
-              <Router>
-                <Routes>
-                  <Route path="/" element={<Landing />} />
-                  <Route path="/home" element={<Home />} />
-                  <Route path="/auth" element={<Auth />} />
-                  
-                  {/* Smart Spend Routes */}
-                  <Route path="/dashboard" element={
-                    <ProtectedRoute>
-                      <Dashboard />
-                    </ProtectedRoute>
-                  } />
-                  <Route path="/expenses" element={
-                    <ProtectedRoute>
-                      <Expenses />
-                    </ProtectedRoute>
-                  } />
-                  <Route path="/budgets" element={
-                    <ProtectedRoute>
-                      <Budgets />
-                    </ProtectedRoute>
-                  } />
-                  <Route path="/reports" element={
-                    <ProtectedRoute>
-                      <Reports />
-                    </ProtectedRoute>
-                  } />
-                  <Route path="/notifications" element={
-                    <ProtectedRoute>
-                      <Notifications />
-                    </ProtectedRoute>
-                  } />
-                  <Route path="/profile" element={
-                    <ProtectedRoute>
-                      <Profile />
-                    </ProtectedRoute>
-                  } />
+        <ThemeProvider>
+          <CurrencyProvider>
+            <TranslationProvider>
+              <NotificationProvider>
+                <NetworkStatus />
+                <Router>
+                  <Routes>
+                    <Route path="/" element={<Landing />} />
+                    <Route path="/home" element={<Home />} />
+                    <Route path="/auth" element={<Auth />} />
+                    
+                    {/* Smart Spend Routes */}
+                    <Route path="/dashboard" element={
+                      <ProtectedRoute>
+                        <Dashboard />
+                      </ProtectedRoute>
+                    } />
+                    <Route path="/expenses" element={
+                      <ProtectedRoute>
+                        <Expenses />
+                      </ProtectedRoute>
+                    } />
+                    <Route path="/budgets" element={
+                      <ProtectedRoute>
+                        <Budgets />
+                      </ProtectedRoute>
+                    } />
+                    <Route path="/reports" element={
+                      <ProtectedRoute>
+                        <Reports />
+                      </ProtectedRoute>
+                    } />
+                    <Route path="/notifications" element={
+                      <ProtectedRoute>
+                        <Notifications />
+                      </ProtectedRoute>
+                    } />
+                    <Route path="/profile" element={
+                      <ProtectedRoute>
+                        <Profile />
+                      </ProtectedRoute>
+                    } />
 
-                  {/* Legal and Support Pages */}
-                  <Route path="/privacy" element={<PrivacyPolicy />} />
-                  <Route path="/terms" element={<TermsOfService />} />
-                  <Route path="/help" element={<HelpCenter />} />
+                    {/* Legal and Support Pages */}
+                    <Route path="/privacy" element={<PrivacyPolicy />} />
+                    <Route path="/terms" element={<TermsOfService />} />
+                    <Route path="/help" element={<HelpCenter />} />
 
-                  <Route path="/index" element={<Index />} />
-                  <Route path="*" element={<NotFound />} />
-                </Routes>
-              </Router>
-              <Toaster />
-            </NotificationProvider>
-          </TranslationProvider>
-        </CurrencyProvider>
+                    <Route path="/index" element={<Index />} />
+                    <Route path="*" element={<NotFound />} />
+                  </Routes>
+                </Router>
+                <Toaster />
+              </NotificationProvider>
+            </TranslationProvider>
+          </CurrencyProvider>
+        </ThemeProvider>
       </QueryClientProvider>
     </ErrorBoundary>
   );

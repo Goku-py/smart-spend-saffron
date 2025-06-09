@@ -1,15 +1,17 @@
 import { useLocation, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Home, Plus, Target, BarChart, Bell, User } from "lucide-react";
+import { Home, Plus, Target, BarChart, Bell, User, Moon, Sun } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { useNotifications } from "../contexts/NotificationContext";
+import { useTheme } from "../contexts/ThemeContext";
 
 const MobileNav = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const { t } = useTranslation();
   const { unreadCount } = useNotifications();
+  const { theme, toggleTheme } = useTheme();
 
   const navItems = [
     { path: "/dashboard", label: "Home", icon: Home },
@@ -21,7 +23,7 @@ const MobileNav = () => {
   ];
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 shadow-lg md:hidden">
+    <div className="fixed bottom-0 left-0 right-0 bg-background border-t border-border shadow-lg md:hidden theme-transition">
       <div className="flex justify-around items-center py-2">
         {navItems.map((item) => {
           const Icon = item.icon;
@@ -33,7 +35,7 @@ const MobileNav = () => {
               variant="ghost"
               onClick={() => navigate(item.path)}
               className={`flex flex-col items-center py-2 px-3 relative ${
-                isActive ? 'text-orange-600' : 'text-gray-600'
+                isActive ? 'text-orange-600' : 'text-muted-foreground'
               }`}
             >
               <div className="relative">
@@ -48,6 +50,20 @@ const MobileNav = () => {
             </Button>
           );
         })}
+        
+        {/* Theme Toggle for Mobile */}
+        <Button
+          variant="ghost"
+          onClick={toggleTheme}
+          className="flex flex-col items-center py-2 px-3 text-muted-foreground"
+        >
+          {theme === 'light' ? (
+            <Moon className="h-5 w-5 mb-1" />
+          ) : (
+            <Sun className="h-5 w-5 mb-1" />
+          )}
+          <span className="text-xs">Theme</span>
+        </Button>
       </div>
     </div>
   );

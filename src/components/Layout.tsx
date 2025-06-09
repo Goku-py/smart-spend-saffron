@@ -2,6 +2,7 @@ import { ReactNode } from "react";
 import Sidebar from "./Sidebar";
 import MobileNav from "./MobileNav";
 import NotificationCenter from "./NotificationCenter";
+import ThemeToggle from "./ThemeToggle";
 import { useAuth } from "../hooks/useAuth";
 
 interface LayoutProps {
@@ -12,7 +13,7 @@ const Layout = ({ children }: LayoutProps) => {
   const { user } = useAuth();
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-background theme-transition">
       {/* Desktop Sidebar */}
       <div className="hidden md:block">
         <Sidebar />
@@ -21,15 +22,20 @@ const Layout = ({ children }: LayoutProps) => {
       {/* Main Content */}
       <div className="md:pl-64">
         {/* Top Bar with Notification Center */}
-        <div className="bg-white border-b border-gray-200 px-4 py-3 md:px-6">
+        <div className="bg-background border-b border-border px-4 py-3 md:px-6 theme-transition">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-4">
-              <h1 className="text-lg font-semibold text-gray-800">
+              <h1 className="text-lg font-semibold">
                 Welcome back, {user?.displayName || user?.email?.split('@')[0] || 'User'}!
               </h1>
             </div>
             
             <div className="flex items-center space-x-4">
+              {/* Desktop Theme Toggle */}
+              <div className="hidden md:block">
+                <ThemeToggle />
+              </div>
+              
               <NotificationCenter />
               
               {/* User Avatar */}
