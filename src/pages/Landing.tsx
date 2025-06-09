@@ -16,22 +16,19 @@ import {
   Play
 } from "lucide-react";
 import SEOWrapper from "../components/SEOWrapper";
+import AuthModal from "../components/AuthModal";
 
 const Landing = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
+  const [showAuthModal, setShowAuthModal] = useState(false);
 
   const handleGetStarted = () => {
-    navigate('/auth');
+    setShowAuthModal(true);
   };
 
-  const handleGoogleSignIn = () => {
-    // Redirect to auth page for now
-    navigate('/auth');
-    toast({
-      title: "Get Started with Smart Spend",
-      description: "Create an account or sign in to continue. Google OAuth will be available soon!",
-    });
+  const handleAuthSuccess = () => {
+    navigate('/dashboard');
   };
 
   const features = [
@@ -100,7 +97,7 @@ const Landing = () => {
                 <Button variant="ghost" onClick={() => navigate('/help')}>
                   Help
                 </Button>
-                <Button variant="ghost" onClick={() => navigate('/auth')}>
+                <Button variant="ghost" onClick={() => setShowAuthModal(true)}>
                   Sign In
                 </Button>
                 <Button 
@@ -146,7 +143,7 @@ const Landing = () => {
                 size="lg" 
                 variant="outline" 
                 className="text-lg px-8 py-4"
-                onClick={handleGoogleSignIn}
+                onClick={() => setShowAuthModal(true)}
               >
                 <svg className="mr-2 h-5 w-5" viewBox="0 0 24 24">
                   <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
@@ -353,6 +350,13 @@ const Landing = () => {
             </div>
           </div>
         </footer>
+
+        {/* Auth Modal */}
+        <AuthModal 
+          open={showAuthModal} 
+          onClose={() => setShowAuthModal(false)}
+          onSuccess={handleAuthSuccess}
+        />
       </div>
     </SEOWrapper>
   );

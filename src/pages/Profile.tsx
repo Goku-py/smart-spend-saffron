@@ -8,7 +8,8 @@ import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
 import Layout from "@/components/Layout";
-import { useAuth } from "../App";
+import SecureLogout from "@/components/SecureLogout";
+import { useAuth } from "../hooks/useAuth";
 import { useCurrency, currencyOptions } from "../contexts/CurrencyContext";
 import { useTranslationContext, languages } from "../contexts/TranslationContext";
 import { useTranslation } from "react-i18next";
@@ -41,17 +42,17 @@ interface UserProfile {
 }
 
 const Profile = () => {
-  const { user, logout } = useAuth();
+  const { user } = useAuth();
   const { currentCurrency, setCurrency, formatCurrency } = useCurrency();
   const { currentLanguage, setLanguage } = useTranslationContext();
   const { t } = useTranslation();
   const { toast } = useToast();
   const navigate = useNavigate();
 
-  // Get user display name from email or user metadata
+  // Get user display name from user data
   const getUserDisplayName = () => {
-    if (user?.user_metadata?.full_name) {
-      return user.user_metadata.full_name;
+    if (user?.displayName) {
+      return user.displayName;
     }
     if (user?.email) {
       return user.email.split('@')[0];
@@ -63,7 +64,7 @@ const Profile = () => {
     personalInfo: {
       name: getUserDisplayName(),
       email: user?.email || '',
-      phone: user?.phone || '',
+      phone: '',
       monthlyIncome: 50000,
       occupation: '',
       city: ''
@@ -129,15 +130,6 @@ const Profile = () => {
     });
   };
 
-  const handleLogout = () => {
-    logout();
-    navigate('/');
-    toast({
-      title: "Logged Out",
-      description: "You have been logged out successfully",
-    });
-  };
-
   const handleExportData = () => {
     const dataToExport = {
       profile: userProfile,
@@ -163,13 +155,12 @@ const Profile = () => {
   const handleDeleteAccount = () => {
     if (window.confirm("Are you sure you want to delete your account? This action cannot be undone.")) {
       localStorage.clear();
-      logout();
-      navigate('/');
       toast({
         title: "Account Deleted",
         description: "Your account has been deleted successfully",
         variant: "destructive",
       });
+      navigate('/');
     }
   };
 
@@ -206,24 +197,24 @@ const Profile = () => {
             </div>
             
             <div className="space-y-2">
-              <Label htmlFor="phone">Phone Number</Label>
-              <Input
-                id="phone"
-                value={userProfile.personalInfo.phone}
-                disabled
-                className="bg-gray-50"
-              />
-              <p className="text-xs text-gray-500">Phone number cannot be changed</p>
-            </div>
-            
-            <div className="space-y-2">
               <Label htmlFor="email">Email Address</Label>
               <Input
                 id="email"
                 type="email"
                 value={userProfile.personalInfo.email}
-                onChange={(e) => handleProfileChange('personalInfo', 'email', e.target.value)}
-                placeholder="Enter your email"
+                disabled
+                className="bg-gray-50"
+              />
+              <p className="text-xs text-gray-500">Email cannot be changed</p>
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="phone">Phone Number</Label>
+              <Input
+                id="phone"
+                value={userProfile.personalInfo.phone}
+                onChange={(e) => handleProfileChange('personalInfo', 'phone', e.target.value)}
+                placeholder="Enter your phone number"
               />
             </div>
             
@@ -412,13 +403,10 @@ const Profile = () => {
               📥 Export Data
             </Button>
             
-            <Button 
-              onClick={handleLogout}
-              variant="outline" 
+            <SecureLogout 
+              variant="outline"
               className="w-full justify-start"
-            >
-              🚪 Logout
-            </Button>
+            />
             
             <Button 
               onClick={handleDeleteAccount}
