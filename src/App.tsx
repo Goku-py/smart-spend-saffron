@@ -17,6 +17,12 @@ import Notifications from "./pages/Notifications";
 import Profile from "./pages/Profile";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
+
+// Quicken-inspired pages
+import QuickenDashboard from "./pages/QuickenDashboard";
+import QuickenAccounts from "./pages/QuickenAccounts";
+import QuickenTransactions from "./pages/QuickenTransactions";
+
 import { createContext, useContext, useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import type { User, Session } from "@supabase/supabase-js";
@@ -282,6 +288,8 @@ function App() {
                     <Route path="/" element={<Landing />} />
                     <Route path="/home" element={<Home />} />
                     <Route path="/auth" element={<Auth />} />
+                    
+                    {/* Original Smart Spend Routes */}
                     <Route path="/dashboard" element={
                       <ProtectedRoute>
                         <Dashboard />
@@ -312,6 +320,24 @@ function App() {
                         <Profile />
                       </ProtectedRoute>
                     } />
+
+                    {/* Quicken-Inspired Routes */}
+                    <Route path="/quicken" element={
+                      <ProtectedRoute>
+                        <QuickenDashboard />
+                      </ProtectedRoute>
+                    } />
+                    <Route path="/accounts" element={
+                      <ProtectedRoute>
+                        <QuickenAccounts />
+                      </ProtectedRoute>
+                    } />
+                    <Route path="/transactions" element={
+                      <ProtectedRoute>
+                        <QuickenTransactions />
+                      </ProtectedRoute>
+                    } />
+
                     <Route path="/index" element={<Index />} />
                     <Route path="*" element={<NotFound />} />
                   </Routes>
