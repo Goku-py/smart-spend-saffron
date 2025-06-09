@@ -8,7 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { useTranslation } from 'react-i18next';
+import { useTranslation } from "../contexts/TranslationContext";
 import LanguageSelector from "@/components/LanguageSelector";
 import { ArrowLeft, Eye, EyeOff } from "lucide-react";
 
