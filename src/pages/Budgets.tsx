@@ -10,8 +10,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import Layout from "@/components/Layout";
 import { useToast } from "@/hooks/use-toast";
-import { supabase } from "@/integrations/supabase/client";
 import { useTranslation } from 'react-i18next';
+import { supabase } from "@/integrations/supabase/client";
 import { Pencil, Trash2 } from "lucide-react";
 
 interface Budget {
@@ -418,7 +418,7 @@ const Budgets = () => {
 
             <div className="flex space-x-2 pt-4">
               <Button type="button" variant="outline" onClick={() => setShowCreateBudget(false)} className="flex-1">
-                Cancel
+                {t('cancel')}
               </Button>
               <Button 
                 type="submit" 
@@ -494,14 +494,14 @@ const Budgets = () => {
 
             <div className="flex space-x-2 pt-4">
               <Button type="button" variant="outline" onClick={() => setShowEditBudget(false)} className="flex-1">
-                Cancel
+                {t('cancel')}
               </Button>
               <Button 
                 type="submit" 
                 disabled={isLoading}
                 className="flex-1 bg-gradient-to-r from-orange-500 to-yellow-500 text-white"
               >
-                Update Budget
+                {t('update')} Budget
               </Button>
             </div>
           </form>
@@ -512,19 +512,19 @@ const Budgets = () => {
       <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete Budget</AlertDialogTitle>
+            <AlertDialogTitle>{t('delete')} Budget</AlertDialogTitle>
             <AlertDialogDescription>
               {t('confirmDelete')} This action cannot be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogCancel>{t('cancel')}</AlertDialogCancel>
             <AlertDialogAction
               onClick={handleDeleteBudget}
               disabled={isLoading}
               className="bg-red-600 hover:bg-red-700"
             >
-              Delete
+              {t('delete')}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

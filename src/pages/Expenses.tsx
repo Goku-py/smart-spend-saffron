@@ -9,7 +9,7 @@ import ExpenseModal from "@/components/ExpenseModal";
 import { sampleExpenses, categories } from "../data/mockData";
 import { useToast } from "@/hooks/use-toast";
 import { useCurrency } from "@/contexts/CurrencyContext";
-import { useTranslation } from "@/contexts/TranslationContext";
+import { useTranslation } from "react-i18next";
 import { Pencil, Trash2 } from "lucide-react";
 
 interface Expense {
@@ -181,7 +181,7 @@ const Expenses = () => {
                     <SelectItem value="all">{t('allCategories')}</SelectItem>
                     {categories.map((category) => (
                       <SelectItem key={category} value={category}>
-                        {category}
+                        {t(category)}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -225,7 +225,7 @@ const Expenses = () => {
                     <div>
                       <div className="font-medium">{expense.description}</div>
                       <div className="text-sm text-gray-600">
-                        {expense.merchant} • {expense.category}
+                        {expense.merchant} • {t(expense.category)}
                       </div>
                       <div className="text-xs text-gray-500">
                         {expense.date} • {expense.method}
@@ -294,18 +294,18 @@ const Expenses = () => {
       <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete Expense</AlertDialogTitle>
+            <AlertDialogTitle>{t('delete')} Expense</AlertDialogTitle>
             <AlertDialogDescription>
               Are you sure you want to delete this expense? This action cannot be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogCancel>{t('cancel')}</AlertDialogCancel>
             <AlertDialogAction
               onClick={confirmDeleteExpense}
               className="bg-red-600 hover:bg-red-700"
             >
-              Delete
+              {t('delete')}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

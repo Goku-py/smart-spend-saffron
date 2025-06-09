@@ -1,19 +1,19 @@
-
 import { useTranslation } from 'react-i18next';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Globe } from "lucide-react";
 
 const LanguageSelector = () => {
-  const { i18n } = useTranslation();
+  const { i18n, t } = useTranslation();
 
   const languages = [
     { code: 'en', name: 'English', flag: '🇺🇸' },
-    { code: 'hi', name: 'हिंदी', flag: '🇮🇳' },
-    { code: 'es', name: 'Español', flag: '🇪🇸' }
+    { code: 'hi', name: 'हिंदी', flag: '🇮🇳' }
   ];
 
   const handleLanguageChange = (languageCode: string) => {
     i18n.changeLanguage(languageCode);
+    // Also save to localStorage for persistence
+    localStorage.setItem('smartspend_language', languageCode);
   };
 
   const currentLanguage = languages.find(lang => lang.code === i18n.language) || languages[0];
