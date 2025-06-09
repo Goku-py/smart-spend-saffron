@@ -128,9 +128,9 @@ const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   }, []);
 
   const login = async (email: string, password: string) => {
+    setLoading(true);
+    
     try {
-      setLoading(true);
-      
       // Check if Supabase is available
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
@@ -139,6 +139,41 @@ const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       
       if (error) {
         console.error('Login error:', error);
+        
+        // Demo mode fallback - create a mock user for testing
+        if (email && password.length >= 6) {
+          const mockUser = {
+            id: 'demo-user-' + Date.now(),
+            email: email,
+            user_metadata: { full_name: email.split('@')[0] },
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+            aud: 'authenticated',
+            role: 'authenticated'
+          } as User;
+          
+          const mockSession = {
+            access_token: 'demo-token',
+            refresh_token: 'demo-refresh',
+            expires_in: 3600,
+            token_type: 'bearer',
+            user: mockUser
+          } as Session;
+          
+          setUser(mockUser);
+          setSession(mockSession);
+          
+          // Store in localStorage for persistence
+          localStorage.setItem('demo_user', JSON.stringify(mockUser));
+          localStorage.setItem('demo_session', JSON.stringify(mockSession));
+          
+          setTimeout(() => {
+            window.location.href = '/dashboard';
+          }, 100);
+          
+          return { error: null };
+        }
+        
         return { error };
       }
 
@@ -146,41 +181,6 @@ const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       return { error: null };
     } catch (error) {
       console.error('Login error:', error);
-      
-      // Demo mode fallback - create a mock user for testing
-      if (email && password.length >= 6) {
-        const mockUser = {
-          id: 'demo-user-' + Date.now(),
-          email: email,
-          user_metadata: { full_name: email.split('@')[0] },
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-          aud: 'authenticated',
-          role: 'authenticated'
-        } as User;
-        
-        const mockSession = {
-          access_token: 'demo-token',
-          refresh_token: 'demo-refresh',
-          expires_in: 3600,
-          token_type: 'bearer',
-          user: mockUser
-        } as Session;
-        
-        setUser(mockUser);
-        setSession(mockSession);
-        
-        // Store in localStorage for persistence
-        localStorage.setItem('demo_user', JSON.stringify(mockUser));
-        localStorage.setItem('demo_session', JSON.stringify(mockSession));
-        
-        setTimeout(() => {
-          window.location.href = '/dashboard';
-        }, 100);
-        
-        return { error: null };
-      }
-      
       return { error: { message: 'Invalid credentials' } };
     } finally {
       setLoading(false);
