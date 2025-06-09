@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -6,6 +5,7 @@ import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { useNavigate } from "react-router-dom";
 import Layout from "@/components/Layout";
+import DemoModeIndicator from "@/components/DemoModeIndicator";
 import { useAuth } from "../App";
 import { useCurrency } from "../contexts/CurrencyContext";
 import { useTranslation } from "../contexts/TranslationContext";
@@ -77,6 +77,9 @@ const Dashboard = () => {
   return (
     <Layout>
       <div className="space-y-6">
+        {/* Demo Mode Indicator */}
+        <DemoModeIndicator />
+
         {/* Welcome Header */}
         <div>
           <h1 className="text-2xl font-bold text-gray-800">

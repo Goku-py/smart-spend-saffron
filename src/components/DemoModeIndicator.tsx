@@ -11,7 +11,8 @@ const DemoModeIndicator: React.FC = () => {
       <Info className="h-4 w-4 text-blue-600" />
       <AlertDescription className="text-blue-800">
         <strong>Demo Mode:</strong> You're using Smart Spend in demo mode. 
-        Data is stored locally and won't sync across devices.
+        Data is stored locally and won't sync across devices. 
+        <a href="/auth" className="underline ml-1">Create an account</a> for full features.
       </AlertDescription>
     </Alert>
   );
