@@ -43,10 +43,6 @@ export default defineConfig(({ mode }) => ({
     // Increase chunk size warning limit
     chunkSizeWarningLimit: 1000,
   },
-  define: {
-    // Remove console.log in production - fixed to use proper JSON syntax
-    ...(mode === 'production' && { 'console.log': '() => {}' }),
-  },
   optimizeDeps: {
     // Pre-bundle dependencies for faster dev server startup
     include: [
