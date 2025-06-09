@@ -7,10 +7,10 @@ import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import Layout from "@/components/Layout";
-import GoogleAuthTest from "@/components/GoogleAuthTest";
 import { useNotifications } from "../contexts/NotificationContext";
 import { useToast } from "@/hooks/use-toast";
-import { Bell, Sparkles, Settings, TestTube, CheckCircle, AlertTriangle } from "lucide-react";
+import { Bell, Sparkles, Settings, TestTube, CheckCircle, AlertTriangle, Shield } from "lucide-react";
+import { isFirebaseConfigured } from "../lib/firebase";
 
 const Notifications = () => {
   const { notifications, markAsRead, dismissNotification, addNotification } = useNotifications();
@@ -135,7 +135,7 @@ const Notifications = () => {
                   <CardTitle className="text-red-700 flex items-center">
                     <AlertTriangle className="h-5 w-5 mr-2" />
                     Urgent Alerts
-                    <Badge variant="destructive\" className="ml-2">
+                    <Badge variant="destructive" className="ml-2">
                       {urgentNotifications.length}
                     </Badge>
                   </CardTitle>
@@ -249,7 +249,7 @@ const Notifications = () => {
                                 <div className="w-2 h-2 bg-orange-500 rounded-full" />
                               )}
                               {notification.isUrgent && (
-                                <Badge variant="destructive\" className="text-xs">
+                                <Badge variant="destructive" className="text-xs">
                                   Urgent
                                 </Badge>
                               )}
@@ -334,8 +334,57 @@ const Notifications = () => {
 
           {/* Testing Tab */}
           <TabsContent value="testing" className="space-y-6">
-            {/* Google Auth Testing */}
-            <GoogleAuthTest />
+            {/* Firebase Authentication Status */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center">
+                  <Shield className="h-5 w-5 mr-2" />
+                  Firebase Authentication Status
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <Alert className={isFirebaseConfigured() ? "border-green-200 bg-green-50" : "border-orange-200 bg-orange-50"}>
+                  {isFirebaseConfigured() ? (
+                    <CheckCircle className="h-4 w-4 text-green-600" />
+                  ) : (
+                    <AlertTriangle className="h-4 w-4 text-orange-600" />
+                  )}
+                  <AlertDescription className={isFirebaseConfigured() ? "text-green-800" : "text-orange-800"}>
+                    <strong>Firebase Status:</strong> {isFirebaseConfigured() ? 
+                      'Properly configured and ready for production use.' : 
+                      'Not configured - demo mode active for testing.'
+                    }
+                  </AlertDescription>
+                </Alert>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="p-4 bg-gray-50 rounded-lg">
+                    <h4 className="font-medium mb-2">Authentication Provider</h4>
+                    <p className="text-sm text-gray-600">
+                      {isFirebaseConfigured() ? 'Firebase (Production Ready)' : 'Demo Mode (Testing Only)'}
+                    </p>
+                  </div>
+                  <div className="p-4 bg-gray-50 rounded-lg">
+                    <h4 className="font-medium mb-2">Google OAuth</h4>
+                    <p className="text-sm text-gray-600">
+                      {isFirebaseConfigured() ? 'Available' : 'Requires Firebase Setup'}
+                    </p>
+                  </div>
+                  <div className="p-4 bg-gray-50 rounded-lg">
+                    <h4 className="font-medium mb-2">Data Storage</h4>
+                    <p className="text-sm text-gray-600">
+                      {isFirebaseConfigured() ? 'Firestore Database' : 'Local Storage (Demo)'}
+                    </p>
+                  </div>
+                  <div className="p-4 bg-gray-50 rounded-lg">
+                    <h4 className="font-medium mb-2">Security Features</h4>
+                    <p className="text-sm text-gray-600">
+                      {isFirebaseConfigured() ? 'Enterprise Grade' : 'Basic Demo Security'}
+                    </p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
 
             {/* Notification Testing */}
             <Card>
@@ -389,6 +438,12 @@ const Notifications = () => {
                     <div className="flex items-center justify-between">
                       <span>Auto-dismiss:</span>
                       <Badge className="bg-green-100 text-green-800">30s Timer</Badge>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span>Firebase Integration:</span>
+                      <Badge className={isFirebaseConfigured() ? "bg-green-100 text-green-800" : "bg-orange-100 text-orange-800"}>
+                        {isFirebaseConfigured() ? 'Connected' : 'Demo Mode'}
+                      </Badge>
                     </div>
                   </div>
                 </div>

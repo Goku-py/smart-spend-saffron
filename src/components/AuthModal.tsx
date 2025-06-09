@@ -15,7 +15,6 @@ import {
   resetPassword, 
   isFirebaseConfigured 
 } from "../lib/firebase";
-import { supabase, isSupabaseConfigured } from "../integrations/supabase/client";
 
 interface AuthModalProps {
   open: boolean;
@@ -38,7 +37,7 @@ const AuthModal = ({ open, onClose, onSuccess }: AuthModalProps) => {
   });
   const { toast } = useToast();
 
-  // Password strength validation
+  // Enhanced password strength validation
   const validatePasswordStrength = (password: string) => {
     let strength = 0;
     if (password.length >= 8) strength++;
@@ -66,7 +65,7 @@ const AuthModal = ({ open, onClose, onSuccess }: AuthModalProps) => {
     }
   };
 
-  // Demo mode fallback
+  // Demo mode fallback (only when Firebase is not configured)
   const activateDemoMode = (email: string) => {
     const mockUser = {
       id: 'demo-user-' + Date.now(),
@@ -205,58 +204,15 @@ const AuthModal = ({ open, onClose, onSuccess }: AuthModalProps) => {
               return;
             }
           } catch (firebaseError: any) {
-            console.warn('Firebase signup failed, trying Supabase:', firebaseError);
+            console.warn('Firebase signup failed:', firebaseError);
+            throw firebaseError;
           }
         }
 
-        // Supabase fallback
-        if (isSupabaseConfigured() && supabase) {
-          try {
-            const { data, error } = await supabase.auth.signUp({
-              email,
-              password,
-              options: {
-                data: {
-                  full_name: fullName,
-                  gdpr_consent: gdprConsent
-                }
-              }
-            });
-
-            if (error) {
-              if (error.message.includes('User already registered')) {
-                toast({
-                  title: "Account Already Exists",
-                  description: "An account with this email already exists. Please sign in instead.",
-                  variant: "destructive",
-                });
-                setMode('signin');
-                return;
-              }
-              throw error;
-            }
-
-            if (data.user) {
-              toast({
-                title: "Account Created! 🎉",
-                description: data.session ? 
-                  "Welcome to Smart Spend! You're now signed in." :
-                  "Please check your email to verify your account.",
-              });
-              
-              if (data.session) {
-                onSuccess();
-                onClose();
-              }
-            }
-            return;
-          } catch (supabaseError: any) {
-            console.warn('Supabase signup failed, activating demo mode:', supabaseError);
-          }
+        // Fallback to demo mode for signup if Firebase not configured
+        if (!isFirebaseConfigured()) {
+          activateDemoMode(email);
         }
-
-        // Demo mode fallback for signup
-        activateDemoMode(email);
 
       } else if (mode === 'signin') {
         // Enhanced signin
@@ -274,45 +230,18 @@ const AuthModal = ({ open, onClose, onSuccess }: AuthModalProps) => {
               return;
             }
           } catch (firebaseError: any) {
-            console.warn('Firebase signin failed, trying Supabase:', firebaseError);
+            console.warn('Firebase signin failed:', firebaseError);
+            throw firebaseError;
           }
         }
 
-        // Supabase fallback
-        if (isSupabaseConfigured() && supabase) {
-          try {
-            const { data, error } = await supabase.auth.signInWithPassword({
-              email,
-              password,
-            });
-
-            if (error) {
-              if (error.message.includes('Invalid login credentials')) {
-                console.warn('Supabase signin failed, activating demo mode:', error);
-              } else {
-                throw error;
-              }
-            } else if (data.user) {
-              toast({
-                title: "Welcome Back! 👋",
-                description: "You've been signed in successfully.",
-              });
-              onSuccess();
-              onClose();
-              return;
-            }
-          } catch (supabaseError: any) {
-            console.warn('Supabase signin failed, activating demo mode:', supabaseError);
-          }
-        }
-
-        // Demo mode fallback for signin
-        if (email && password.length >= 8) {
+        // Demo mode fallback for signin if Firebase not configured
+        if (!isFirebaseConfigured() && email && password.length >= 8) {
           activateDemoMode(email);
-        } else {
+        } else if (!isFirebaseConfigured()) {
           toast({
             title: "Authentication Failed",
-            description: "Unable to authenticate with any service. Please check your credentials or try demo mode.",
+            description: "Firebase is not configured. Using demo mode requires valid email and password (8+ chars).",
             variant: "destructive",
           });
         }
@@ -351,14 +280,6 @@ const AuthModal = ({ open, onClose, onSuccess }: AuthModalProps) => {
         
         if (error) {
           throw new Error(error);
-        }
-      } else if (isSupabaseConfigured() && supabase) {
-        const { error } = await supabase.auth.resetPasswordForEmail(email, {
-          redirectTo: `${window.location.origin}/auth?mode=reset`
-        });
-        
-        if (error) {
-          throw error;
         }
       } else {
         toast({
@@ -425,11 +346,11 @@ const AuthModal = ({ open, onClose, onSuccess }: AuthModalProps) => {
 
         <div className="space-y-6">
           {/* Service Status Alert */}
-          {(!isFirebaseConfigured() && !isSupabaseConfigured()) && mode !== 'reset' && (
+          {!isFirebaseConfigured() && mode !== 'reset' && (
             <Alert className="border-blue-200 bg-blue-50">
               <AlertCircle className="h-4 w-4 text-blue-600" />
               <AlertDescription className="text-blue-800">
-                <strong>Demo Mode Available:</strong> Authentication services are not configured. 
+                <strong>Demo Mode Available:</strong> Firebase authentication is not configured. 
                 You can still use the app in demo mode with any email and password (8+ characters).
               </AlertDescription>
             </Alert>
@@ -440,7 +361,7 @@ const AuthModal = ({ open, onClose, onSuccess }: AuthModalProps) => {
             <Alert className="border-green-200 bg-green-50">
               <Shield className="h-4 w-4 text-green-600" />
               <AlertDescription className="text-green-800">
-                <strong>Secure Authentication:</strong> Your data is protected with enterprise-grade security.
+                <strong>Secure Authentication:</strong> Your data is protected with enterprise-grade Firebase security.
               </AlertDescription>
             </Alert>
           )}
@@ -682,9 +603,9 @@ const AuthModal = ({ open, onClose, onSuccess }: AuthModalProps) => {
               Password: password123
             </p>
             <p className="text-xs mt-1 text-orange-600">
-              {(!isFirebaseConfigured() && !isSupabaseConfigured()) 
+              {!isFirebaseConfigured() 
                 ? 'Demo mode active - use any email and password (8+ chars)'
-                : 'Demo mode available if services are unavailable'
+                : 'Demo mode available if Firebase services are unavailable'
               }
             </p>
           </div>
