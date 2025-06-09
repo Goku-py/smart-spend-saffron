@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { useToast } from '@/hooks/use-toast';
-import { LogOut, Loader2 } from 'lucide-react';
+import { LogOut, Loader2, Shield } from 'lucide-react';
 import { logOut } from '../lib/firebase';
 import { supabase } from '../integrations/supabase/client';
 
@@ -21,7 +21,7 @@ const SecureLogout = ({ onLogout, variant = 'outline', size = 'default', classNa
     setIsLoading(true);
     
     try {
-      // Step 1: Sign out from Firebase
+      // Step 1: Sign out from Firebase (handles session cleanup)
       await logOut();
       
       // Step 2: Sign out from Supabase
@@ -52,7 +52,26 @@ const SecureLogout = ({ onLogout, variant = 'outline', size = 'default', classNa
         );
       }
       
-      // Step 6: Invalidate any active tokens (handled by Firebase/Supabase)
+      // Step 6: Clear IndexedDB (if used)
+      if ('indexedDB' in window) {
+        try {
+          // Clear any IndexedDB databases that might contain user data
+          const databases = await indexedDB.databases();
+          await Promise.all(
+            databases.map(db => {
+              if (db.name) {
+                const deleteReq = indexedDB.deleteDatabase(db.name);
+                return new Promise((resolve, reject) => {
+                  deleteReq.onsuccess = () => resolve(undefined);
+                  deleteReq.onerror = () => reject(deleteReq.error);
+                });
+              }
+            })
+          );
+        } catch (error) {
+          console.warn('IndexedDB cleanup warning:', error);
+        }
+      }
       
       toast({
         title: "Logged Out Successfully",
@@ -106,15 +125,24 @@ const SecureLogout = ({ onLogout, variant = 'outline', size = 'default', classNa
       
       <AlertDialogContent>
         <AlertDialogHeader>
-          <AlertDialogTitle>Confirm Logout</AlertDialogTitle>
+          <AlertDialogTitle className="flex items-center">
+            <Shield className="h-5 w-5 mr-2 text-orange-600" />
+            Secure Logout
+          </AlertDialogTitle>
           <AlertDialogDescription>
             Are you sure you want to log out? This will:
             <ul className="list-disc list-inside mt-2 space-y-1">
-              <li>End your current session</li>
-              <li>Clear all stored data</li>
-              <li>Remove authentication tokens</li>
+              <li>End your current session securely</li>
+              <li>Clear all stored authentication data</li>
+              <li>Remove cached information</li>
+              <li>Sign you out from all connected services</li>
               <li>Redirect you to the home page</li>
             </ul>
+            <div className="mt-3 p-3 bg-orange-50 rounded-lg">
+              <p className="text-sm text-orange-800">
+                <strong>Security Note:</strong> This ensures complete data privacy and prevents unauthorized access to your account.
+              </p>
+            </div>
           </AlertDialogDescription>
         </AlertDialogHeader>
         
@@ -133,7 +161,10 @@ const SecureLogout = ({ onLogout, variant = 'outline', size = 'default', classNa
                 Logging Out...
               </>
             ) : (
-              'Yes, Logout'
+              <>
+                <Shield className="h-4 w-4 mr-2" />
+                Yes, Logout Securely
+              </>
             )}
           </AlertDialogAction>
         </AlertDialogFooter>

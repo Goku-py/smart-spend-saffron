@@ -3,11 +3,18 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
-import { Eye, EyeOff, Loader2, AlertCircle } from "lucide-react";
+import { Eye, EyeOff, Loader2, AlertCircle, Shield, CheckCircle } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { signInWithGoogle, signInWithEmail, signUpWithEmail, resetPassword, isFirebaseConfigured } from "../lib/firebase";
+import { 
+  signInWithGoogle, 
+  signInWithEmail, 
+  signUpWithEmail, 
+  resetPassword, 
+  isFirebaseConfigured 
+} from "../lib/firebase";
 import { supabase, isSupabaseConfigured } from "../integrations/supabase/client";
 
 interface AuthModalProps {
@@ -24,15 +31,21 @@ const AuthModal = ({ open, onClose, onSuccess }: AuthModalProps) => {
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [passwordStrength, setPasswordStrength] = useState(0);
+  const [gdprConsent, setGdprConsent] = useState({
+    marketing: false,
+    analytics: false,
+    required: false
+  });
   const { toast } = useToast();
 
+  // Password strength validation
   const validatePasswordStrength = (password: string) => {
     let strength = 0;
     if (password.length >= 8) strength++;
     if (/[A-Z]/.test(password)) strength++;
     if (/[a-z]/.test(password)) strength++;
     if (/\d/.test(password)) strength++;
-    if (/[!@#$%^&*]/.test(password)) strength++;
+    if (/[!@#$%^&*(),.?":{}|<>]/.test(password)) strength++;
     return strength;
   };
 
@@ -53,6 +66,7 @@ const AuthModal = ({ open, onClose, onSuccess }: AuthModalProps) => {
     }
   };
 
+  // Demo mode fallback
   const activateDemoMode = (email: string) => {
     const mockUser = {
       id: 'demo-user-' + Date.now(),
@@ -79,6 +93,7 @@ const AuthModal = ({ open, onClose, onSuccess }: AuthModalProps) => {
     onClose();
   };
 
+  // Enhanced Google Sign-In
   const handleGoogleSignIn = async () => {
     if (!isFirebaseConfigured()) {
       toast({
@@ -117,9 +132,11 @@ const AuthModal = ({ open, onClose, onSuccess }: AuthModalProps) => {
     }
   };
 
+  // Enhanced Email Authentication
   const handleEmailAuth = async (e: React.FormEvent) => {
     e.preventDefault();
     
+    // Input validation
     if (!email || !password) {
       toast({
         title: "Missing Information",
@@ -138,10 +155,20 @@ const AuthModal = ({ open, onClose, onSuccess }: AuthModalProps) => {
       return;
     }
 
-    if (password.length < 6) {
+    if (password.length < 8) {
       toast({
         title: "Password Too Short",
-        description: "Password must be at least 6 characters long.",
+        description: "Password must be at least 8 characters long.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // GDPR consent validation for signup
+    if (mode === 'signup' && !gdprConsent.required) {
+      toast({
+        title: "Privacy Policy Required",
+        description: "Please accept our Privacy Policy to continue.",
         variant: "destructive",
       });
       return;
@@ -151,10 +178,18 @@ const AuthModal = ({ open, onClose, onSuccess }: AuthModalProps) => {
 
     try {
       if (mode === 'signup') {
-        // Try Firebase first if configured
+        // Enhanced signup with GDPR compliance
         if (isFirebaseConfigured()) {
           try {
-            const { user, error } = await signUpWithEmail(email, password, fullName);
+            const { user, error } = await signUpWithEmail(
+              email, 
+              password, 
+              fullName,
+              {
+                marketing: gdprConsent.marketing,
+                analytics: gdprConsent.analytics
+              }
+            );
             
             if (error) {
               throw new Error(error);
@@ -163,7 +198,7 @@ const AuthModal = ({ open, onClose, onSuccess }: AuthModalProps) => {
             if (user) {
               toast({
                 title: "Account Created! 🎉",
-                description: "Welcome to Smart Spend! You're now signed in.",
+                description: "Please check your email to verify your account.",
               });
               onSuccess();
               onClose();
@@ -174,7 +209,7 @@ const AuthModal = ({ open, onClose, onSuccess }: AuthModalProps) => {
           }
         }
 
-        // Try Supabase if configured
+        // Supabase fallback
         if (isSupabaseConfigured() && supabase) {
           try {
             const { data, error } = await supabase.auth.signUp({
@@ -183,6 +218,7 @@ const AuthModal = ({ open, onClose, onSuccess }: AuthModalProps) => {
               options: {
                 data: {
                   full_name: fullName,
+                  gdpr_consent: gdprConsent
                 }
               }
             });
@@ -200,18 +236,18 @@ const AuthModal = ({ open, onClose, onSuccess }: AuthModalProps) => {
               throw error;
             }
 
-            if (data.user && !data.session) {
-              toast({
-                title: "Check Your Email",
-                description: "We've sent you a confirmation link to complete your registration.",
-              });
-            } else if (data.user && data.session) {
+            if (data.user) {
               toast({
                 title: "Account Created! 🎉",
-                description: "Welcome to Smart Spend! You're now signed in.",
+                description: data.session ? 
+                  "Welcome to Smart Spend! You're now signed in." :
+                  "Please check your email to verify your account.",
               });
-              onSuccess();
-              onClose();
+              
+              if (data.session) {
+                onSuccess();
+                onClose();
+              }
             }
             return;
           } catch (supabaseError: any) {
@@ -219,11 +255,11 @@ const AuthModal = ({ open, onClose, onSuccess }: AuthModalProps) => {
           }
         }
 
-        // Fallback to demo mode for signup
+        // Demo mode fallback for signup
         activateDemoMode(email);
 
       } else if (mode === 'signin') {
-        // Try Firebase first if configured
+        // Enhanced signin
         if (isFirebaseConfigured()) {
           try {
             const { user, error } = await signInWithEmail(email, password);
@@ -242,7 +278,7 @@ const AuthModal = ({ open, onClose, onSuccess }: AuthModalProps) => {
           }
         }
 
-        // Try Supabase if configured
+        // Supabase fallback
         if (isSupabaseConfigured() && supabase) {
           try {
             const { data, error } = await supabase.auth.signInWithPassword({
@@ -253,7 +289,6 @@ const AuthModal = ({ open, onClose, onSuccess }: AuthModalProps) => {
             if (error) {
               if (error.message.includes('Invalid login credentials')) {
                 console.warn('Supabase signin failed, activating demo mode:', error);
-                // Fall through to demo mode
               } else {
                 throw error;
               }
@@ -271,8 +306,8 @@ const AuthModal = ({ open, onClose, onSuccess }: AuthModalProps) => {
           }
         }
 
-        // Fallback to demo mode for signin
-        if (email && password.length >= 6) {
+        // Demo mode fallback for signin
+        if (email && password.length >= 8) {
           activateDemoMode(email);
         } else {
           toast({
@@ -295,6 +330,7 @@ const AuthModal = ({ open, onClose, onSuccess }: AuthModalProps) => {
     }
   };
 
+  // Enhanced Password Reset
   const handlePasswordReset = async (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -317,8 +353,9 @@ const AuthModal = ({ open, onClose, onSuccess }: AuthModalProps) => {
           throw new Error(error);
         }
       } else if (isSupabaseConfigured() && supabase) {
-        // Supabase password reset
-        const { error } = await supabase.auth.resetPasswordForEmail(email);
+        const { error } = await supabase.auth.resetPasswordForEmail(email, {
+          redirectTo: `${window.location.origin}/auth?mode=reset`
+        });
         
         if (error) {
           throw error;
@@ -355,6 +392,7 @@ const AuthModal = ({ open, onClose, onSuccess }: AuthModalProps) => {
     setPassword("");
     setFullName("");
     setPasswordStrength(0);
+    setGdprConsent({ marketing: false, analytics: false, required: false });
     setMode('signin');
   };
 
@@ -365,7 +403,7 @@ const AuthModal = ({ open, onClose, onSuccess }: AuthModalProps) => {
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="sm:max-w-md max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <div className="flex items-center justify-center space-x-2 mb-4">
             <span className="text-2xl">🪔</span>
@@ -392,7 +430,17 @@ const AuthModal = ({ open, onClose, onSuccess }: AuthModalProps) => {
               <AlertCircle className="h-4 w-4 text-blue-600" />
               <AlertDescription className="text-blue-800">
                 <strong>Demo Mode Available:</strong> Authentication services are not configured. 
-                You can still use the app in demo mode with any email and password (6+ characters).
+                You can still use the app in demo mode with any email and password (8+ characters).
+              </AlertDescription>
+            </Alert>
+          )}
+
+          {/* Security Notice */}
+          {isFirebaseConfigured() && (
+            <Alert className="border-green-200 bg-green-50">
+              <Shield className="h-4 w-4 text-green-600" />
+              <AlertDescription className="text-green-800">
+                <strong>Secure Authentication:</strong> Your data is protected with enterprise-grade security.
               </AlertDescription>
             </Alert>
           )}
@@ -402,7 +450,7 @@ const AuthModal = ({ open, onClose, onSuccess }: AuthModalProps) => {
             <>
               <Button
                 onClick={handleGoogleSignIn}
-                disabled={isLoading || !isFirebaseConfigured()}
+                disabled={isLoading}
                 variant="outline"
                 className={`w-full flex items-center justify-center space-x-2 h-12 ${
                   !isFirebaseConfigured() ? 'opacity-50 cursor-not-allowed' : ''
@@ -469,7 +517,7 @@ const AuthModal = ({ open, onClose, onSuccess }: AuthModalProps) => {
                     onChange={(e) => handlePasswordChange(e.target.value)}
                     placeholder="Enter your password"
                     required
-                    minLength={6}
+                    minLength={8}
                     disabled={isLoading}
                   />
                   <Button
@@ -517,6 +565,56 @@ const AuthModal = ({ open, onClose, onSuccess }: AuthModalProps) => {
                     </Button>
                   </div>
                 )}
+              </div>
+            )}
+
+            {/* GDPR Compliance for Signup */}
+            {mode === 'signup' && (
+              <div className="space-y-4 p-4 bg-gray-50 rounded-lg">
+                <h4 className="font-medium text-sm">Privacy & Data Protection</h4>
+                
+                <div className="space-y-3">
+                  <div className="flex items-start space-x-2">
+                    <Checkbox
+                      id="gdpr-required"
+                      checked={gdprConsent.required}
+                      onCheckedChange={(checked) => 
+                        setGdprConsent(prev => ({ ...prev, required: !!checked }))
+                      }
+                      required
+                    />
+                    <Label htmlFor="gdpr-required" className="text-sm leading-relaxed">
+                      I agree to the <a href="/privacy" target="_blank" className="text-orange-600 underline">Privacy Policy</a> and 
+                      <a href="/terms" target="_blank" className="text-orange-600 underline ml-1">Terms of Service</a> *
+                    </Label>
+                  </div>
+                  
+                  <div className="flex items-start space-x-2">
+                    <Checkbox
+                      id="gdpr-marketing"
+                      checked={gdprConsent.marketing}
+                      onCheckedChange={(checked) => 
+                        setGdprConsent(prev => ({ ...prev, marketing: !!checked }))
+                      }
+                    />
+                    <Label htmlFor="gdpr-marketing" className="text-sm leading-relaxed">
+                      I consent to receiving marketing communications (optional)
+                    </Label>
+                  </div>
+                  
+                  <div className="flex items-start space-x-2">
+                    <Checkbox
+                      id="gdpr-analytics"
+                      checked={gdprConsent.analytics}
+                      onCheckedChange={(checked) => 
+                        setGdprConsent(prev => ({ ...prev, analytics: !!checked }))
+                      }
+                    />
+                    <Label htmlFor="gdpr-analytics" className="text-sm leading-relaxed">
+                      I consent to analytics and usage tracking to improve the service (optional)
+                    </Label>
+                  </div>
+                </div>
               </div>
             )}
 
@@ -585,7 +683,7 @@ const AuthModal = ({ open, onClose, onSuccess }: AuthModalProps) => {
             </p>
             <p className="text-xs mt-1 text-orange-600">
               {(!isFirebaseConfigured() && !isSupabaseConfigured()) 
-                ? 'Demo mode active - use any email and password (6+ chars)'
+                ? 'Demo mode active - use any email and password (8+ chars)'
                 : 'Demo mode available if services are unavailable'
               }
             </p>

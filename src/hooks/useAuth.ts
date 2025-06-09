@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { User, onAuthStateChanged } from 'firebase/auth';
-import { auth, isFirebaseConfigured } from '../lib/firebase';
+import { auth, isFirebaseConfigured, getUserProfile } from '../lib/firebase';
 import { supabase, isSupabaseConfigured } from '../integrations/supabase/client';
 
 interface AuthUser {
@@ -8,7 +8,9 @@ interface AuthUser {
   email: string;
   displayName?: string;
   photoURL?: string;
+  emailVerified?: boolean;
   provider: 'firebase' | 'supabase' | 'demo';
+  profile?: any;
 }
 
 interface AuthState {
@@ -29,31 +31,54 @@ export const useAuth = () => {
 
     const initializeAuth = async () => {
       try {
-        // Check if Firebase is configured
+        // Check if Firebase is configured and set up listener
         if (isFirebaseConfigured()) {
-          // Set up Firebase auth listener
           unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
             if (firebaseUser) {
-              const authUser: AuthUser = {
-                id: firebaseUser.uid,
-                email: firebaseUser.email || '',
-                displayName: firebaseUser.displayName || undefined,
-                photoURL: firebaseUser.photoURL || undefined,
-                provider: 'firebase'
-              };
-              
-              // Sync with Supabase if configured
-              if (isSupabaseConfigured()) {
-                await syncWithSupabase(authUser);
+              try {
+                // Get user profile from Firestore
+                const profile = await getUserProfile(firebaseUser.uid);
+                
+                const authUser: AuthUser = {
+                  id: firebaseUser.uid,
+                  email: firebaseUser.email || '',
+                  displayName: firebaseUser.displayName || profile?.displayName || undefined,
+                  photoURL: firebaseUser.photoURL || profile?.photoURL || undefined,
+                  emailVerified: firebaseUser.emailVerified,
+                  provider: 'firebase',
+                  profile
+                };
+                
+                // Sync with Supabase if configured
+                if (isSupabaseConfigured()) {
+                  await syncWithSupabase(authUser);
+                }
+                
+                setAuthState({
+                  user: authUser,
+                  loading: false,
+                  error: null
+                });
+              } catch (error) {
+                console.error('Error loading user profile:', error);
+                // Still set user even if profile loading fails
+                const authUser: AuthUser = {
+                  id: firebaseUser.uid,
+                  email: firebaseUser.email || '',
+                  displayName: firebaseUser.displayName || undefined,
+                  photoURL: firebaseUser.photoURL || undefined,
+                  emailVerified: firebaseUser.emailVerified,
+                  provider: 'firebase'
+                };
+                
+                setAuthState({
+                  user: authUser,
+                  loading: false,
+                  error: null
+                });
               }
-              
-              setAuthState({
-                user: authUser,
-                loading: false,
-                error: null
-              });
             } else {
-              // Check for Supabase session
+              // No Firebase user, check Supabase
               await checkSupabaseSession();
             }
           });
@@ -87,6 +112,8 @@ export const useAuth = () => {
             id: session.user.id,
             email: session.user.email || '',
             displayName: session.user.user_metadata?.full_name,
+            photoURL: session.user.user_metadata?.avatar_url,
+            emailVerified: session.user.email_confirmed_at ? true : false,
             provider: 'supabase'
           };
           
@@ -193,5 +220,23 @@ export const useAuth = () => {
     };
   }, []);
 
-  return authState;
+  // Refresh user profile
+  const refreshProfile = async () => {
+    if (authState.user && authState.user.provider === 'firebase') {
+      try {
+        const profile = await getUserProfile(authState.user.id);
+        setAuthState(prev => ({
+          ...prev,
+          user: prev.user ? { ...prev.user, profile } : null
+        }));
+      } catch (error) {
+        console.error('Error refreshing profile:', error);
+      }
+    }
+  };
+
+  return {
+    ...authState,
+    refreshProfile
+  };
 };
