@@ -13,9 +13,10 @@ import {
   sendEmailVerification,
   reauthenticateWithCredential,
   EmailAuthProvider,
-  updatePassword
+  updatePassword,
+  connectAuthEmulator
 } from 'firebase/auth';
-import { getFirestore, doc, setDoc, getDoc, updateDoc, serverTimestamp } from 'firebase/firestore';
+import { getFirestore, doc, setDoc, getDoc, updateDoc, serverTimestamp, connectFirestoreEmulator } from 'firebase/firestore';
 import { getAnalytics } from 'firebase/analytics';
 
 // Firebase configuration - these need to be set in your .env file
@@ -29,17 +30,35 @@ const firebaseConfig = {
   measurementId: import.meta.env.VITE_FIREBASE_MEASUREMENT_ID
 };
 
-// Validate Firebase configuration
-const isFirebaseConfigValid = () => {
+// Enhanced configuration validation
+const validateFirebaseConfig = () => {
   const requiredFields = [
     'apiKey', 'authDomain', 'projectId', 'storageBucket', 
     'messagingSenderId', 'appId'
   ];
   
-  return requiredFields.every(field => 
-    firebaseConfig[field as keyof typeof firebaseConfig] && 
-    firebaseConfig[field as keyof typeof firebaseConfig] !== "demo-api-key"
-  );
+  const missingFields = requiredFields.filter(field => {
+    const value = firebaseConfig[field as keyof typeof firebaseConfig];
+    return !value || value === "demo-api-key" || value === "your_project_id";
+  });
+  
+  if (missingFields.length > 0) {
+    console.warn('Missing Firebase configuration fields:', missingFields);
+    return false;
+  }
+  
+  // Validate format of key fields
+  if (!firebaseConfig.apiKey?.startsWith('AIza')) {
+    console.warn('Invalid Firebase API key format');
+    return false;
+  }
+  
+  if (!firebaseConfig.authDomain?.includes('.firebaseapp.com')) {
+    console.warn('Invalid Firebase auth domain format');
+    return false;
+  }
+  
+  return true;
 };
 
 // Initialize Firebase only if config is valid
@@ -47,8 +66,11 @@ let app: any;
 let auth: any;
 let db: any;
 let analytics: any;
+let googleProvider: GoogleAuthProvider;
 
-if (isFirebaseConfigValid()) {
+const isConfigValid = validateFirebaseConfig();
+
+if (isConfigValid) {
   try {
     app = initializeApp(firebaseConfig);
     auth = getAuth(app);
@@ -59,113 +81,161 @@ if (isFirebaseConfigValid()) {
       analytics = getAnalytics(app);
     }
     
-    // Configure Google Auth Provider with security settings
-    const googleProvider = new GoogleAuthProvider();
+    // Configure Google Auth Provider with enhanced settings
+    googleProvider = new GoogleAuthProvider();
+    
+    // Set custom parameters for better UX
     googleProvider.setCustomParameters({
       prompt: 'select_account',
-      hd: undefined // Remove domain restriction for broader access
+      hd: undefined, // Remove domain restriction
+      include_granted_scopes: 'true',
+      access_type: 'online'
     });
     
-    // Add required scopes for user profile information
+    // Add required scopes
     googleProvider.addScope('email');
     googleProvider.addScope('profile');
+    googleProvider.addScope('openid');
     
-    console.log('Firebase initialized successfully');
+    // Configure auth settings
+    auth.languageCode = 'en';
+    auth.useDeviceLanguage();
+    
+    // Connect to emulator in development if needed
+    if (import.meta.env.DEV && import.meta.env.VITE_USE_FIREBASE_EMULATOR === 'true') {
+      connectAuthEmulator(auth, 'http://localhost:9099');
+      connectFirestoreEmulator(db, 'localhost', 8080);
+    }
+    
+    console.log('✅ Firebase initialized successfully');
+    console.log('🔐 Google OAuth provider configured');
+    
   } catch (error) {
-    console.error('Firebase initialization error:', error);
+    console.error('❌ Firebase initialization error:', error);
   }
 } else {
-  console.warn('Firebase configuration incomplete - Authentication services will be unavailable');
+  console.warn('⚠️ Firebase configuration incomplete - Authentication services will be unavailable');
+  console.log('📝 Please check your .env file and ensure all Firebase configuration values are set correctly');
 }
 
-// Enhanced error handling with user-friendly messages
+// Enhanced error handling with specific Google OAuth errors
 const getAuthErrorMessage = (errorCode: string): string => {
   const errorMessages: Record<string, string> = {
+    // General auth errors
     'auth/user-not-found': 'No account found with this email address.',
     'auth/wrong-password': 'Incorrect password. Please try again.',
     'auth/email-already-in-use': 'An account with this email already exists.',
-    'auth/weak-password': 'Password should be at least 6 characters long.',
+    'auth/weak-password': 'Password should be at least 8 characters long.',
     'auth/invalid-email': 'Please enter a valid email address.',
     'auth/user-disabled': 'This account has been disabled. Please contact support.',
     'auth/too-many-requests': 'Too many failed attempts. Please try again later.',
     'auth/network-request-failed': 'Network error. Please check your connection.',
-    'auth/popup-closed-by-user': 'Sign-in was cancelled. Please try again.',
-    'auth/popup-blocked': 'Pop-up was blocked. Please allow pop-ups and try again.',
-    'auth/account-exists-with-different-credential': 'An account already exists with this email using a different sign-in method.',
     'auth/requires-recent-login': 'Please sign in again to complete this action.',
-    'auth/invalid-verification-code': 'Invalid verification code. Please try again.',
-    'auth/invalid-verification-id': 'Invalid verification ID. Please try again.'
+    
+    // Google OAuth specific errors
+    'auth/popup-closed-by-user': 'Sign-in was cancelled. Please try again.',
+    'auth/popup-blocked': 'Pop-up was blocked by your browser. Please allow pop-ups for this site and try again.',
+    'auth/cancelled-popup-request': 'Another sign-in request is already in progress.',
+    'auth/account-exists-with-different-credential': 'An account already exists with this email using a different sign-in method. Please try signing in with your email and password.',
+    'auth/credential-already-in-use': 'This Google account is already linked to another user.',
+    'auth/operation-not-allowed': 'Google sign-in is not enabled. Please contact support.',
+    'auth/invalid-credential': 'The Google sign-in credential is invalid or expired.',
+    'auth/user-cancelled': 'Google sign-in was cancelled by the user.',
+    'auth/timeout': 'Google sign-in timed out. Please try again.',
+    
+    // Configuration errors
+    'auth/invalid-api-key': 'Invalid API key. Please check your Firebase configuration.',
+    'auth/app-not-authorized': 'This app is not authorized to use Firebase Authentication.',
+    'auth/invalid-user-token': 'User token is invalid. Please sign in again.',
+    'auth/user-token-expired': 'User token has expired. Please sign in again.',
+    
+    // Network and browser errors
+    'auth/web-storage-unsupported': 'Your browser does not support web storage.',
+    'auth/unauthorized-domain': 'This domain is not authorized for OAuth operations.',
+    'auth/invalid-action-code': 'The action code is invalid or expired.',
+    'auth/expired-action-code': 'The action code has expired.',
+    'auth/invalid-continue-uri': 'The continue URL provided is invalid.'
   };
   
-  return errorMessages[errorCode] || 'An unexpected error occurred. Please try again.';
+  return errorMessages[errorCode] || `Authentication error: ${errorCode}. Please try again or contact support.`;
 };
 
-// User profile interface for type safety
-interface UserProfile {
-  uid: string;
-  email: string;
-  displayName: string;
-  photoURL?: string;
-  emailVerified: boolean;
-  createdAt: any;
-  lastLoginAt: any;
-  preferences: {
-    language: string;
-    currency: string;
-    notifications: boolean;
-  };
-  gdprConsent: {
-    marketing: boolean;
-    analytics: boolean;
-    consentDate: any;
-  };
-}
-
-// Google Sign-In with enhanced security
+// Enhanced Google Sign-In with comprehensive error handling
 export const signInWithGoogle = async () => {
-  if (!isFirebaseConfigValid() || !auth) {
-    throw new Error('Google authentication is not configured. Please contact support.');
+  if (!isConfigValid || !auth || !googleProvider) {
+    throw new Error('Google authentication is not properly configured. Please check your Firebase setup or contact support.');
   }
 
   try {
-    const googleProvider = new GoogleAuthProvider();
-    googleProvider.setCustomParameters({
-      prompt: 'select_account'
-    });
+    console.log('🚀 Initiating Google sign-in...');
     
-    const result = await signInWithPopup(auth, googleProvider);
-    const user = result.user;
-    
-    // Log authentication event for security monitoring
-    console.log('Google sign-in successful:', {
-      uid: user.uid,
-      email: user.email,
-      timestamp: new Date().toISOString()
-    });
-    
-    // Create or update user profile
-    await createOrUpdateUserProfile(user, 'google');
-    
-    // Send analytics event (GDPR compliant)
-    if (analytics) {
-      // Only track if user has consented to analytics
-      const userProfile = await getUserProfile(user.uid);
-      if (userProfile?.gdprConsent?.analytics) {
-        // Track login event
-      }
+    // Clear any existing auth state
+    if (auth.currentUser) {
+      console.log('📝 Existing user session found, proceeding with Google sign-in');
     }
     
-    return { user, error: null };
-  } catch (error: any) {
-    console.error('Google sign-in error:', error);
+    // Configure popup settings for better compatibility
+    const result = await signInWithPopup(auth, googleProvider);
+    const user = result.user;
+    const credential = GoogleAuthProvider.credentialFromResult(result);
     
-    // Enhanced error handling
-    const errorMessage = getAuthErrorMessage(error.code);
+    if (!user) {
+      throw new Error('Google sign-in completed but no user data received');
+    }
+    
+    console.log('✅ Google sign-in successful:', {
+      uid: user.uid,
+      email: user.email,
+      displayName: user.displayName,
+      emailVerified: user.emailVerified
+    });
+    
+    // Get additional user info from Google
+    const additionalUserInfo = result.user.providerData[0];
+    
+    // Create or update user profile with Google data
+    await createOrUpdateUserProfile(user, 'google', {
+      googleCredential: {
+        accessToken: credential?.accessToken,
+        idToken: credential?.idToken,
+        providerId: additionalUserInfo?.providerId,
+        lastSignInTime: new Date().toISOString()
+      }
+    });
+    
+    // Log successful authentication for security monitoring
+    console.log('🔐 User profile updated with Google authentication data');
+    
+    return { user, error: null };
+    
+  } catch (error: any) {
+    console.error('❌ Google sign-in error:', error);
+    
+    // Enhanced error logging for debugging
+    console.error('Error details:', {
+      code: error.code,
+      message: error.message,
+      stack: error.stack,
+      customData: error.customData
+    });
+    
+    // Handle specific Google OAuth errors
+    let errorMessage = getAuthErrorMessage(error.code);
+    
+    // Add specific troubleshooting for common issues
+    if (error.code === 'auth/popup-blocked') {
+      errorMessage += '\n\nTroubleshooting:\n1. Allow pop-ups for this website\n2. Try disabling popup blockers\n3. Use a different browser if the issue persists';
+    } else if (error.code === 'auth/unauthorized-domain') {
+      errorMessage += '\n\nThis appears to be a configuration issue. Please contact support.';
+    } else if (error.code === 'auth/operation-not-allowed') {
+      errorMessage += '\n\nGoogle sign-in needs to be enabled in the Firebase console.';
+    }
+    
     throw new Error(errorMessage);
   }
 };
 
-// Email/Password Sign-In with security enhancements
+// Enhanced Email/Password Sign-In
 export const signInWithEmail = async (email: string, password: string) => {
   if (!auth) {
     throw new Error('Authentication service is not available');
@@ -181,31 +251,26 @@ export const signInWithEmail = async (email: string, password: string) => {
       throw new Error('Please enter a valid email address');
     }
     
+    console.log('🔐 Attempting email sign-in for:', email);
+    
     const result = await signInWithEmailAndPassword(auth, email, password);
     const user = result.user;
     
     // Update last login timestamp
     await updateUserProfile(user.uid, {
-      lastLoginAt: serverTimestamp()
+      lastLoginAt: serverTimestamp(),
+      lastLoginMethod: 'email'
     });
     
-    // Log successful login for security monitoring
-    console.log('Email sign-in successful:', {
+    console.log('✅ Email sign-in successful:', {
       uid: user.uid,
       email: user.email,
-      timestamp: new Date().toISOString()
+      emailVerified: user.emailVerified
     });
     
     return { user, error: null };
   } catch (error: any) {
-    console.error('Email sign-in error:', error);
-    
-    // Log failed login attempt for security monitoring
-    console.warn('Failed login attempt:', {
-      email,
-      error: error.code,
-      timestamp: new Date().toISOString()
-    });
+    console.error('❌ Email sign-in error:', error);
     
     const errorMessage = getAuthErrorMessage(error.code);
     throw new Error(errorMessage);
@@ -247,6 +312,8 @@ export const signUpWithEmail = async (
       throw new Error('Password must contain uppercase, lowercase, and numeric characters');
     }
     
+    console.log('📝 Creating new user account for:', email);
+    
     const result = await createUserWithEmailAndPassword(auth, email, password);
     const user = result.user;
     
@@ -256,33 +323,38 @@ export const signUpWithEmail = async (
     });
     
     // Send email verification
-    await sendEmailVerification(user);
+    await sendEmailVerification(user, {
+      url: `${window.location.origin}/auth?verified=true`,
+      handleCodeInApp: false
+    });
     
     // Create comprehensive user profile with GDPR compliance
     await createOrUpdateUserProfile(user, 'email', {
       gdprConsent: {
         marketing: gdprConsent.marketing,
         analytics: gdprConsent.analytics,
-        consentDate: serverTimestamp()
-      }
+        consentDate: serverTimestamp(),
+        consentVersion: '1.0'
+      },
+      emailVerificationSent: true
     });
     
-    console.log('User registration successful:', {
+    console.log('✅ User registration successful:', {
       uid: user.uid,
       email: user.email,
-      timestamp: new Date().toISOString()
+      emailVerified: user.emailVerified
     });
     
     return { user, error: null };
   } catch (error: any) {
-    console.error('Email sign-up error:', error);
+    console.error('❌ Email sign-up error:', error);
     
     const errorMessage = getAuthErrorMessage(error.code);
     throw new Error(errorMessage);
   }
 };
 
-// Enhanced Password Reset with security measures
+// Enhanced Password Reset
 export const resetPassword = async (email: string) => {
   if (!auth) {
     throw new Error('Authentication service is not available');
@@ -298,54 +370,11 @@ export const resetPassword = async (email: string) => {
       handleCodeInApp: false
     });
     
-    // Log password reset request for security monitoring
-    console.log('Password reset requested:', {
-      email,
-      timestamp: new Date().toISOString()
-    });
+    console.log('📧 Password reset email sent to:', email);
     
     return { error: null };
   } catch (error: any) {
-    console.error('Password reset error:', error);
-    
-    const errorMessage = getAuthErrorMessage(error.code);
-    throw new Error(errorMessage);
-  }
-};
-
-// Secure password change functionality
-export const changePassword = async (currentPassword: string, newPassword: string) => {
-  if (!auth?.currentUser) {
-    throw new Error('User not authenticated');
-  }
-
-  try {
-    const user = auth.currentUser;
-    
-    // Re-authenticate user before password change
-    const credential = EmailAuthProvider.credential(user.email!, currentPassword);
-    await reauthenticateWithCredential(user, credential);
-    
-    // Validate new password
-    if (newPassword.length < 8) {
-      throw new Error('New password must be at least 8 characters long');
-    }
-    
-    await updatePassword(user, newPassword);
-    
-    // Update user profile timestamp
-    await updateUserProfile(user.uid, {
-      lastPasswordChange: serverTimestamp()
-    });
-    
-    console.log('Password changed successfully:', {
-      uid: user.uid,
-      timestamp: new Date().toISOString()
-    });
-    
-    return { error: null };
-  } catch (error: any) {
-    console.error('Password change error:', error);
+    console.error('❌ Password reset error:', error);
     
     const errorMessage = getAuthErrorMessage(error.code);
     throw new Error(errorMessage);
@@ -365,10 +394,7 @@ export const logOut = async () => {
       
       await signOut(auth);
       
-      console.log('User logged out successfully:', {
-        uid,
-        timestamp: new Date().toISOString()
-      });
+      console.log('✅ User logged out successfully:', uid);
     }
     
     // Clear all local storage and session data
@@ -384,7 +410,7 @@ export const logOut = async () => {
     
     return { error: null };
   } catch (error: any) {
-    console.error('Logout error:', error);
+    console.error('❌ Logout error:', error);
     
     // Force logout even if Firebase fails
     localStorage.clear();
@@ -394,7 +420,7 @@ export const logOut = async () => {
   }
 };
 
-// Create or update user profile with GDPR compliance
+// User profile management functions
 const createOrUpdateUserProfile = async (
   user: User, 
   provider: string, 
@@ -408,13 +434,14 @@ const createOrUpdateUserProfile = async (
     const userSnap = await getDoc(userRef);
     const now = serverTimestamp();
     
-    const baseProfile: Partial<UserProfile> = {
+    const baseProfile = {
       uid: user.uid,
       email: user.email!,
       displayName: user.displayName || user.email?.split('@')[0] || 'User',
       photoURL: user.photoURL,
       emailVerified: user.emailVerified,
       lastLoginAt: now,
+      provider,
       preferences: {
         language: 'en',
         currency: 'INR',
@@ -424,34 +451,36 @@ const createOrUpdateUserProfile = async (
     
     if (!userSnap.exists()) {
       // Create new user profile
-      const newProfile: UserProfile = {
+      const newProfile = {
         ...baseProfile,
         createdAt: now,
         gdprConsent: {
           marketing: false,
           analytics: false,
-          consentDate: now
+          consentDate: now,
+          consentVersion: '1.0'
         },
         ...additionalData
-      } as UserProfile;
+      };
       
       await setDoc(userRef, newProfile);
-      console.log('User profile created:', user.uid);
+      console.log('👤 User profile created:', user.uid);
     } else {
       // Update existing user profile
       await updateDoc(userRef, {
         ...baseProfile,
+        updatedAt: now,
         ...additionalData
       });
-      console.log('User profile updated:', user.uid);
+      console.log('👤 User profile updated:', user.uid);
     }
   } catch (error) {
-    console.error('Error managing user profile:', error);
+    console.error('❌ Error managing user profile:', error);
   }
 };
 
 // Get user profile
-export const getUserProfile = async (uid: string): Promise<UserProfile | null> => {
+export const getUserProfile = async (uid: string) => {
   if (!db) return null;
   
   try {
@@ -459,18 +488,18 @@ export const getUserProfile = async (uid: string): Promise<UserProfile | null> =
     const userSnap = await getDoc(userRef);
     
     if (userSnap.exists()) {
-      return userSnap.data() as UserProfile;
+      return userSnap.data();
     }
     
     return null;
   } catch (error) {
-    console.error('Error fetching user profile:', error);
+    console.error('❌ Error fetching user profile:', error);
     return null;
   }
 };
 
 // Update user profile
-export const updateUserProfile = async (uid: string, updates: Partial<UserProfile>) => {
+export const updateUserProfile = async (uid: string, updates: any) => {
   if (!db) return;
   
   try {
@@ -480,75 +509,13 @@ export const updateUserProfile = async (uid: string, updates: Partial<UserProfil
       updatedAt: serverTimestamp()
     });
     
-    console.log('User profile updated:', uid);
+    console.log('👤 User profile updated:', uid);
   } catch (error) {
-    console.error('Error updating user profile:', error);
+    console.error('❌ Error updating user profile:', error);
   }
 };
 
-// Update GDPR consent
-export const updateGDPRConsent = async (
-  uid: string, 
-  consent: { marketing: boolean; analytics: boolean }
-) => {
-  if (!db) return;
-  
-  try {
-    const userRef = doc(db, 'users', uid);
-    await updateDoc(userRef, {
-      gdprConsent: {
-        ...consent,
-        consentDate: serverTimestamp()
-      },
-      updatedAt: serverTimestamp()
-    });
-    
-    console.log('GDPR consent updated:', uid);
-  } catch (error) {
-    console.error('Error updating GDPR consent:', error);
-  }
-};
-
-// Delete user account (GDPR Right to be Forgotten)
-export const deleteUserAccount = async () => {
-  if (!auth?.currentUser || !db) {
-    throw new Error('User not authenticated');
-  }
-
-  try {
-    const user = auth.currentUser;
-    const uid = user.uid;
-    
-    // Delete user profile from Firestore
-    const userRef = doc(db, 'users', uid);
-    await updateDoc(userRef, {
-      deleted: true,
-      deletedAt: serverTimestamp(),
-      // Keep minimal data for compliance
-      email: '[DELETED]',
-      displayName: '[DELETED]',
-      photoURL: null
-    });
-    
-    // Delete Firebase Auth user
-    await user.delete();
-    
-    // Clear local data
-    localStorage.clear();
-    sessionStorage.clear();
-    
-    console.log('User account deleted:', uid);
-    
-    return { error: null };
-  } catch (error: any) {
-    console.error('Account deletion error:', error);
-    
-    const errorMessage = getAuthErrorMessage(error.code);
-    throw new Error(errorMessage);
-  }
-};
-
-// Auth state listener for session management
+// Auth state listener
 export const onAuthStateChange = (callback: (user: User | null) => void) => {
   if (!auth) {
     callback(null);
@@ -558,9 +525,14 @@ export const onAuthStateChange = (callback: (user: User | null) => void) => {
   return onAuthStateChanged(auth, callback);
 };
 
-// Export configuration status
+// Configuration status check
 export const isFirebaseConfigured = () => {
-  return isFirebaseConfigValid() && !!auth;
+  return isConfigValid && !!auth;
+};
+
+// Google OAuth availability check
+export const isGoogleOAuthAvailable = () => {
+  return isConfigValid && !!auth && !!googleProvider;
 };
 
 // Export Firebase instances

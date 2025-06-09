@@ -6,14 +6,15 @@ import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
-import { Eye, EyeOff, Loader2, AlertCircle, Shield, CheckCircle } from "lucide-react";
+import { Eye, EyeOff, Loader2, AlertCircle, Shield, CheckCircle, Info } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { 
   signInWithGoogle, 
   signInWithEmail, 
   signUpWithEmail, 
   resetPassword, 
-  isFirebaseConfigured 
+  isFirebaseConfigured,
+  isGoogleOAuthAvailable
 } from "../lib/firebase";
 
 interface AuthModalProps {
@@ -92,12 +93,21 @@ const AuthModal = ({ open, onClose, onSuccess }: AuthModalProps) => {
     onClose();
   };
 
-  // Enhanced Google Sign-In
+  // Enhanced Google Sign-In with better error handling
   const handleGoogleSignIn = async () => {
     if (!isFirebaseConfigured()) {
       toast({
-        title: "Google Sign-In Setup Required",
-        description: "Google authentication needs to be configured. Please use email/password for now or contact support.",
+        title: "Firebase Not Configured",
+        description: "Firebase authentication is not set up. Please use email/password or contact support.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!isGoogleOAuthAvailable()) {
+      toast({
+        title: "Google Sign-In Unavailable",
+        description: "Google OAuth is not properly configured. Please use email/password authentication.",
         variant: "destructive",
       });
       return;
@@ -105,6 +115,8 @@ const AuthModal = ({ open, onClose, onSuccess }: AuthModalProps) => {
 
     setIsLoading(true);
     try {
+      console.log('🚀 Starting Google sign-in process...');
+      
       const { user, error } = await signInWithGoogle();
       
       if (error) {
@@ -112,6 +124,7 @@ const AuthModal = ({ open, onClose, onSuccess }: AuthModalProps) => {
       }
 
       if (user) {
+        console.log('✅ Google sign-in successful');
         toast({
           title: "Welcome! 🎉",
           description: "You've been signed in successfully with Google.",
@@ -120,10 +133,29 @@ const AuthModal = ({ open, onClose, onSuccess }: AuthModalProps) => {
         onClose();
       }
     } catch (error: any) {
-      console.error('Google sign-in error:', error);
+      console.error('❌ Google sign-in error:', error);
+      
+      // Enhanced error handling with specific messages
+      let errorMessage = error.message;
+      let errorTitle = "Google Sign-In Failed";
+      
+      if (error.message.includes('popup-blocked')) {
+        errorTitle = "Pop-up Blocked";
+        errorMessage = "Please allow pop-ups for this site and try again. Check your browser's pop-up blocker settings.";
+      } else if (error.message.includes('popup-closed-by-user')) {
+        errorTitle = "Sign-in Cancelled";
+        errorMessage = "Google sign-in was cancelled. Please try again.";
+      } else if (error.message.includes('network')) {
+        errorTitle = "Network Error";
+        errorMessage = "Please check your internet connection and try again.";
+      } else if (error.message.includes('unauthorized-domain')) {
+        errorTitle = "Configuration Error";
+        errorMessage = "This domain is not authorized for Google sign-in. Please contact support.";
+      }
+      
       toast({
-        title: "Google Sign-In Failed",
-        description: error.message || "Failed to sign in with Google. Please try email/password instead.",
+        title: errorTitle,
+        description: errorMessage,
         variant: "destructive",
       });
     } finally {
@@ -345,10 +377,10 @@ const AuthModal = ({ open, onClose, onSuccess }: AuthModalProps) => {
         </DialogHeader>
 
         <div className="space-y-6">
-          {/* Service Status Alert */}
+          {/* Configuration Status Alerts */}
           {!isFirebaseConfigured() && mode !== 'reset' && (
             <Alert className="border-blue-200 bg-blue-50">
-              <AlertCircle className="h-4 w-4 text-blue-600" />
+              <Info className="h-4 w-4 text-blue-600" />
               <AlertDescription className="text-blue-800">
                 <strong>Demo Mode Available:</strong> Firebase authentication is not configured. 
                 You can still use the app in demo mode with any email and password (8+ characters).
@@ -356,8 +388,17 @@ const AuthModal = ({ open, onClose, onSuccess }: AuthModalProps) => {
             </Alert>
           )}
 
-          {/* Security Notice */}
-          {isFirebaseConfigured() && (
+          {isFirebaseConfigured() && !isGoogleOAuthAvailable() && (
+            <Alert className="border-orange-200 bg-orange-50">
+              <AlertCircle className="h-4 w-4 text-orange-600" />
+              <AlertDescription className="text-orange-800">
+                <strong>Google Sign-In Setup Required:</strong> Google OAuth needs additional configuration. 
+                Email/password authentication is available.
+              </AlertDescription>
+            </Alert>
+          )}
+
+          {isFirebaseConfigured() && isGoogleOAuthAvailable() && (
             <Alert className="border-green-200 bg-green-50">
               <Shield className="h-4 w-4 text-green-600" />
               <AlertDescription className="text-green-800">
@@ -374,7 +415,7 @@ const AuthModal = ({ open, onClose, onSuccess }: AuthModalProps) => {
                 disabled={isLoading}
                 variant="outline"
                 className={`w-full flex items-center justify-center space-x-2 h-12 ${
-                  !isFirebaseConfigured() ? 'opacity-50 cursor-not-allowed' : ''
+                  !isGoogleOAuthAvailable() ? 'opacity-50 cursor-not-allowed' : ''
                 }`}
               >
                 <svg className="w-5 h-5" viewBox="0 0 24 24">
@@ -384,7 +425,7 @@ const AuthModal = ({ open, onClose, onSuccess }: AuthModalProps) => {
                   <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
                 </svg>
                 <span>
-                  {isFirebaseConfigured() ? 'Continue with Google' : 'Google Sign-In (Setup Required)'}
+                  {isGoogleOAuthAvailable() ? 'Continue with Google' : 'Google Sign-In (Setup Required)'}
                 </span>
               </Button>
 
@@ -399,6 +440,7 @@ const AuthModal = ({ open, onClose, onSuccess }: AuthModalProps) => {
 
           {/* Email/Password Form */}
           <form onSubmit={mode === 'reset' ? handlePasswordReset : handleEmailAuth} className="space-y-4">
+            
             {mode === 'signup' && (
               <div className="space-y-2">
                 <Label htmlFor="fullName">Full Name *</Label>
