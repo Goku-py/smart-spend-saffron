@@ -1,21 +1,24 @@
 import bcrypt from 'bcryptjs';
+import { v4 as uuidv4 } from 'uuid';
 
 // Security configuration
 const SALT_ROUNDS = 12;
 const MAX_LOGIN_ATTEMPTS = 5;
 const LOCKOUT_DURATION = 15 * 60 * 1000; // 15 minutes
 const SESSION_TIMEOUT = 30 * 60 * 1000; // 30 minutes
+const PASSWORD_MIN_LENGTH = 8;
+const PASSWORD_MAX_LENGTH = 128;
 
 // Admin credentials (in production, this would be in a secure database)
 const ADMIN_CREDENTIALS = {
   email: 'admin@system.com',
   // Pre-hashed password for Admin@123#Secure
   passwordHash: '$2a$12$LQv3c1yqBwEHXk.JHd3vVeaJQQNvghqQvRtECSRUxdmrU0VJ9HOBO',
-  role: 'admin',
+  role: 'admin' as const,
   id: 'admin-001'
 };
 
-// User storage (in production, this would be a database)
+// User interface
 interface User {
   id: string;
   email: string;
@@ -26,20 +29,32 @@ interface User {
   isLocked?: boolean;
   lockoutUntil?: Date;
   loginAttempts?: number;
+  twoFactorEnabled?: boolean;
+  twoFactorSecret?: string;
+  recoveryCodes?: string[];
+  preferences?: {
+    language: string;
+    theme: 'light' | 'dark' | 'system';
+    notifications: boolean;
+  };
 }
 
-interface LoginAttempt {
-  email: string;
-  timestamp: Date;
-  success: boolean;
-  ipAddress?: string;
-  userAgent?: string;
+// Session interface
+interface Session {
+  userId: string;
+  token: string;
+  expiresAt: Date;
+  deviceInfo: {
+    userAgent: string;
+    ipAddress: string;
+    lastActive: Date;
+  };
 }
 
 // In-memory storage (replace with database in production)
-const users: Map<string, User> = new Map();
-const loginAttempts: LoginAttempt[] = [];
-const activeSessions: Map<string, { userId: string; expiresAt: Date }> = new Map();
+const users = new Map<string, User>();
+const sessions = new Map<string, Session>();
+const loginAttempts = new Map<string, { count: number; lastAttempt: Date }>();
 
 // Initialize admin user
 users.set(ADMIN_CREDENTIALS.email, {
@@ -50,17 +65,15 @@ users.set(ADMIN_CREDENTIALS.email, {
   createdAt: new Date(),
 });
 
-// Utility functions
-export const validateEmail = (email: string): boolean => {
-  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-  return emailRegex.test(email);
-};
-
+// Password validation
 export const validatePassword = (password: string): { isValid: boolean; errors: string[] } => {
   const errors: string[] = [];
   
-  if (password.length < 8) {
-    errors.push('Password must be at least 8 characters long');
+  if (password.length < PASSWORD_MIN_LENGTH) {
+    errors.push(`Password must be at least ${PASSWORD_MIN_LENGTH} characters long`);
+  }
+  if (password.length > PASSWORD_MAX_LENGTH) {
+    errors.push(`Password must not exceed ${PASSWORD_MAX_LENGTH} characters`);
   }
   if (!/[A-Z]/.test(password)) {
     errors.push('Password must contain at least one uppercase letter');
@@ -81,20 +94,41 @@ export const validatePassword = (password: string): { isValid: boolean; errors: 
   };
 };
 
+// Email validation
+export const validateEmail = (email: string): boolean => {
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  return emailRegex.test(email);
+};
+
 // Rate limiting
-export const checkRateLimit = (email: string): boolean => {
+const checkRateLimit = (email: string): boolean => {
   const now = new Date();
-  const recentAttempts = loginAttempts.filter(
-    attempt => attempt.email === email && 
-    now.getTime() - attempt.timestamp.getTime() < 60000 && // Last minute
-    !attempt.success
-  );
+  const attempt = loginAttempts.get(email);
   
-  return recentAttempts.length < MAX_LOGIN_ATTEMPTS;
+  if (!attempt) {
+    loginAttempts.set(email, { count: 1, lastAttempt: now });
+    return true;
+  }
+  
+  // Reset count if last attempt was more than 1 hour ago
+  if (now.getTime() - attempt.lastAttempt.getTime() > 60 * 60 * 1000) {
+    loginAttempts.set(email, { count: 1, lastAttempt: now });
+    return true;
+  }
+  
+  // Check if too many attempts
+  if (attempt.count >= MAX_LOGIN_ATTEMPTS) {
+    return false;
+  }
+  
+  attempt.count++;
+  attempt.lastAttempt = now;
+  loginAttempts.set(email, attempt);
+  return true;
 };
 
 // Account lockout check
-export const isAccountLocked = (email: string): boolean => {
+const isAccountLocked = (email: string): boolean => {
   const user = users.get(email);
   if (!user) return false;
   
@@ -347,7 +381,7 @@ export const resetPassword = async (email: string, newPassword: string, resetTok
     }
     
     // Hash new password
-    const passwordHash = await hashPassword(newPassword);
+    const passwordHash = await bcrypt.hash(newPassword, SALT_ROUNDS);
     user.passwordHash = passwordHash;
     
     // Reset login attempts and unlock account

@@ -1,4 +1,4 @@
-import { initializeApp } from 'firebase/app';
+import { initializeApp, getApps, FirebaseApp } from 'firebase/app';
 import { 
   getAuth, 
   GoogleAuthProvider, 
@@ -14,12 +14,14 @@ import {
   reauthenticateWithCredential,
   EmailAuthProvider,
   updatePassword,
-  connectAuthEmulator
+  connectAuthEmulator,
+  Auth
 } from 'firebase/auth';
-import { getFirestore, doc, setDoc, getDoc, updateDoc, serverTimestamp, connectFirestoreEmulator } from 'firebase/firestore';
-import { getAnalytics } from 'firebase/analytics';
+import { getFirestore, doc, setDoc, getDoc, updateDoc, serverTimestamp, connectFirestoreEmulator, Firestore } from 'firebase/firestore';
+import { getAnalytics, Analytics, isSupported as isAnalyticsSupported } from 'firebase/analytics';
+import { getPerformance } from 'firebase/performance';
 
-// Enhanced Firebase configuration with better validation
+// Firebase configuration
 const firebaseConfig = {
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
   authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
@@ -30,80 +32,93 @@ const firebaseConfig = {
   measurementId: import.meta.env.VITE_FIREBASE_MEASUREMENT_ID
 };
 
-// Enhanced configuration validation with better error handling
-const validateFirebaseConfig = (): { isValid: boolean; missingFields: string[]; errors: string[] } => {
+// Validate Firebase configuration
+const validateFirebaseConfig = () => {
   const requiredFields = [
-    'apiKey', 'authDomain', 'projectId', 'storageBucket', 
-    'messagingSenderId', 'appId'
+    'apiKey',
+    'authDomain',
+    'projectId',
+    'storageBucket',
+    'messagingSenderId',
+    'appId'
   ];
   
-  const errors: string[] = [];
-  const missingFields = requiredFields.filter(field => {
-    const value = firebaseConfig[field as keyof typeof firebaseConfig];
-    if (!value || value === "demo-api-key" || value === "your_project_id" || value === "") {
-      return true;
-    }
-    return false;
-  });
+  const missingFields = requiredFields.filter(field => !firebaseConfig[field as keyof typeof firebaseConfig]);
+  const errors = [];
   
-  // Validate format of key fields with better error messages
-  if (firebaseConfig.apiKey && !firebaseConfig.apiKey.startsWith('AIza') && firebaseConfig.apiKey !== "demo-api-key") {
-    errors.push('Invalid Firebase API key format - should start with "AIza"');
+  if (missingFields.length > 0) {
+    errors.push(`Missing required fields: ${missingFields.join(', ')}`);
   }
   
-  if (firebaseConfig.authDomain && !firebaseConfig.authDomain.includes('.firebaseapp.com') && firebaseConfig.authDomain !== "your_project.firebaseapp.com") {
-    errors.push('Invalid Firebase auth domain format - should end with ".firebaseapp.com"');
+  if (!firebaseConfig.apiKey?.startsWith('AIza')) {
+    errors.push('Invalid API key format');
   }
   
-  if (firebaseConfig.projectId && firebaseConfig.projectId.length < 3 && firebaseConfig.projectId !== "your_project_id") {
-    errors.push('Invalid Firebase project ID - should be at least 3 characters');
+  if (!firebaseConfig.authDomain?.endsWith('.firebaseapp.com')) {
+    errors.push('Invalid auth domain format');
   }
   
-  const isValid = missingFields.length === 0 && errors.length === 0;
-  
-  if (!isValid) {
-    console.warn('Firebase configuration validation failed:', {
-      missingFields,
-      errors,
-      config: Object.keys(firebaseConfig).reduce((acc, key) => {
-        acc[key] = firebaseConfig[key as keyof typeof firebaseConfig] ? '[SET]' : '[MISSING]';
-        return acc;
-      }, {} as Record<string, string>)
-    });
-  }
-  
-  return { isValid, missingFields, errors };
+  return {
+    isValid: errors.length === 0,
+    missingFields,
+    errors
+  };
 };
 
-// Initialize Firebase with enhanced error handling
-let app: any;
-let auth: any;
-let db: any;
-let analytics: any;
+// Firebase instances
+let app: FirebaseApp;
+let auth: Auth;
+let db: Firestore;
+let analytics: Analytics | null = null;
+let performance: ReturnType<typeof getPerformance> | null = null;
 let googleProvider: GoogleAuthProvider;
 
-const configValidation = validateFirebaseConfig();
-const isConfigValid = configValidation.isValid;
-
-if (isConfigValid) {
+// Initialize Firebase with enhanced error handling
+const initializeFirebase = async () => {
   try {
+    // Check if Firebase is already initialized
+    if (getApps().length > 0) {
+      console.warn('Firebase already initialized');
+      return;
+    }
+
+    const configValidation = validateFirebaseConfig();
+    if (!configValidation.isValid) {
+      throw new Error(`Invalid Firebase configuration: ${configValidation.errors.join(', ')}`);
+    }
+
+    // Initialize Firebase app
     app = initializeApp(firebaseConfig);
+    
+    // Initialize Auth
     auth = getAuth(app);
+    auth.languageCode = 'en';
+    auth.useDeviceLanguage();
+    
+    // Initialize Firestore
     db = getFirestore(app);
     
-    // Initialize analytics only in production with proper error handling
-    if (import.meta.env.PROD && firebaseConfig.measurementId) {
+    // Initialize Analytics (only in production)
+    if (import.meta.env.PROD) {
       try {
-        analytics = getAnalytics(app);
-      } catch (analyticsError) {
-        console.warn('Analytics initialization failed:', analyticsError);
+        const analyticsSupported = await isAnalyticsSupported();
+        if (analyticsSupported) {
+          analytics = getAnalytics(app);
+        }
+      } catch (error) {
+        console.warn('Analytics initialization failed:', error);
       }
     }
     
-    // Configure Google Auth Provider with enhanced settings
-    googleProvider = new GoogleAuthProvider();
+    // Initialize Performance Monitoring
+    try {
+      performance = getPerformance(app);
+    } catch (error) {
+      console.warn('Performance monitoring initialization failed:', error);
+    }
     
-    // Set custom parameters for better UX
+    // Configure Google Auth Provider
+    googleProvider = new GoogleAuthProvider();
     googleProvider.setCustomParameters({
       prompt: 'select_account',
       hd: undefined, // Remove domain restriction
@@ -116,17 +131,14 @@ if (isConfigValid) {
     googleProvider.addScope('profile');
     googleProvider.addScope('openid');
     
-    // Configure auth settings
-    auth.languageCode = 'en';
-    auth.useDeviceLanguage();
-    
-    // Connect to emulator in development if needed
+    // Connect to emulator in development
     if (import.meta.env.DEV && import.meta.env.VITE_USE_FIREBASE_EMULATOR === 'true') {
       try {
         connectAuthEmulator(auth, 'http://localhost:9099');
         connectFirestoreEmulator(db, 'localhost', 8080);
-      } catch (emulatorError) {
-        console.warn('Firebase emulator connection failed:', emulatorError);
+        console.log('Connected to Firebase emulators');
+      } catch (error) {
+        console.warn('Firebase emulator connection failed:', error);
       }
     }
     
@@ -135,14 +147,9 @@ if (isConfigValid) {
     
   } catch (error) {
     console.error('❌ Firebase initialization error:', error);
-    console.error('Configuration validation:', configValidation);
+    throw error;
   }
-} else {
-  console.warn('⚠️ Firebase configuration incomplete - Authentication services will be unavailable');
-  console.log('📝 Missing fields:', configValidation.missingFields);
-  console.log('📝 Validation errors:', configValidation.errors);
-  console.log('📝 Please check your .env file and ensure all Firebase configuration values are set correctly');
-}
+};
 
 // Standardized error handling with better error messages
 const getAuthErrorMessage = (errorCode: string): string => {
@@ -162,7 +169,7 @@ const getAuthErrorMessage = (errorCode: string): string => {
     'auth/popup-closed-by-user': 'Sign-in was cancelled. Please try again.',
     'auth/popup-blocked': 'Pop-up was blocked by your browser. Please allow pop-ups for this site and try again.',
     'auth/cancelled-popup-request': 'Another sign-in request is already in progress.',
-    'auth/account-exists-with-different-credential': 'An account already exists with this email using a different sign-in method. Please try signing in with your email and password.',
+    'auth/account-exists-with-different-credential': 'An account already exists with this email using a different sign-in method.',
     'auth/credential-already-in-use': 'This Google account is already linked to another user.',
     'auth/operation-not-allowed': 'Google sign-in is not enabled. Please contact support.',
     'auth/invalid-credential': 'The Google sign-in credential is invalid or expired.',
@@ -194,7 +201,7 @@ interface AuthResponse<T = any> {
 
 // Enhanced Google Sign-In with comprehensive error handling
 export const signInWithGoogle = async (): Promise<AuthResponse<User>> => {
-  if (!isConfigValid || !auth || !googleProvider) {
+  if (!validateFirebaseConfig().isValid || !auth || !googleProvider) {
     return {
       user: null,
       error: 'Google authentication is not properly configured. Please check your Firebase setup or contact support.'
@@ -593,16 +600,27 @@ export const onAuthStateChange = (callback: (user: User | null) => void) => {
 };
 
 // Configuration status checks
-export const isFirebaseConfigured = (): boolean => {
-  return isConfigValid && !!auth;
+const isFirebaseConfigured = (): boolean => {
+  return validateFirebaseConfig().isValid && !!auth;
 };
 
-export const isGoogleOAuthAvailable = (): boolean => {
-  return isConfigValid && !!auth && !!googleProvider;
+const isGoogleOAuthAvailable = (): boolean => {
+  return validateFirebaseConfig().isValid && !!auth && !!googleProvider;
 };
 
-// Export Firebase instances
-export { auth, db, analytics };
+// Export Firebase instances and utilities
+export {
+  app,
+  auth,
+  db,
+  analytics,
+  performance,
+  googleProvider,
+  initializeFirebase,
+  getAuthErrorMessage,
+  isFirebaseConfigured,
+  isGoogleOAuthAvailable
+};
 
 // Export configuration validation for debugging
-export const getFirebaseConfigStatus = () => configValidation;
+export const getFirebaseConfigStatus = () => validateFirebaseConfig();
