@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
-import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line, Area, AreaChart } from 'recharts';
+import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line, Area, AreaChart, Legend } from 'recharts';
 import Layout from "@/components/Layout";
 import { useCurrency } from "../contexts/CurrencyContext";
 import { useTranslation } from "react-i18next";
@@ -128,7 +128,7 @@ const Reports = () => {
         <div className="flex justify-between items-center animate-fade-in">
           <div>
             <h1 className="text-3xl font-bold bg-gradient-to-r from-orange-600 to-yellow-600 bg-clip-text text-transparent">
-              {t('reports')} & Analytics
+              Reports & Analytics
             </h1>
             <p className="text-muted-foreground text-lg">Analyze your spending patterns and trends</p>
           </div>
@@ -142,7 +142,7 @@ const Reports = () => {
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="month">{t('thisMonth')}</SelectItem>
+                <SelectItem value="month">This Month</SelectItem>
                 <SelectItem value="lastMonth">Last Month</SelectItem>
                 <SelectItem value="quarter">Last 3 Months</SelectItem>
                 <SelectItem value="year">This Year</SelectItem>
@@ -206,7 +206,7 @@ const Reports = () => {
             <CardHeader className="pb-3">
               <CardTitle className="text-purple-700 dark:text-purple-300 text-sm font-medium flex items-center">
                 <PieChartIcon className="h-4 w-4 mr-2" />
-                {t('categories')}
+                Categories
               </CardTitle>
             </CardHeader>
             <CardContent>
@@ -249,63 +249,56 @@ const Reports = () => {
           <CardContent>
             <div className="h-96">
               {activeChart === 'category' && (
-                <ResponsiveContainer width="100%\" height="100%">
+                <ResponsiveContainer width="100%" height="100%">
                   <PieChart>
                     <Pie
                       data={analyticsData.categorySpending}
                       cx="50%"
                       cy="50%"
                       labelLine={false}
-                      label={({ name, percentage }) => `${name} (${percentage}%)`}
-                      outerRadius={120}
+                      outerRadius={100}
                       fill="#8884d8"
                       dataKey="value"
-                      animationBegin={0}
-                      animationDuration={1000}
+                      nameKey="name"
+                      label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
                     >
                       {analyticsData.categorySpending.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                        <Cell key={`cell-${index}`} fill={entry.color} />
                       ))}
                     </Pie>
-                    <Tooltip content={<CustomTooltip />} />
+                    <Tooltip formatter={(value: any, name: any, props: any) => [`${formatCurrency(value)} (${props.payload.percentage}%)`, name]} />
+                    <Legend 
+                      layout="vertical" 
+                      verticalAlign="middle" 
+                      align="right" 
+                      formatter={(value: string, entry: any) => `${value} (${formatCurrency(entry.payload.value)})`}
+                      wrapperStyle={{ lineHeight: '24px', fontSize: '14px' }}
+                    />
                   </PieChart>
                 </ResponsiveContainer>
               )}
 
               {activeChart === 'trends' && (
                 <ResponsiveContainer width="100%" height="100%">
-                  <AreaChart data={analyticsData.monthlyTrends}>
-                    <defs>
-                      <linearGradient id="spendingGradient" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor="#FF7518" stopOpacity={0.8}/>
-                        <stop offset="95%" stopColor="#FF7518" stopOpacity={0.1}/>
-                      </linearGradient>
-                      <linearGradient id="savingsGradient" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor="#138808" stopOpacity={0.8}/>
-                        <stop offset="95%" stopColor="#138808" stopOpacity={0.1}/>
-                      </linearGradient>
-                    </defs>
-                    <CartesianGrid strokeDasharray="3 3" className="opacity-30" />
-                    <XAxis dataKey="month" />
-                    <YAxis />
-                    <Tooltip content={<CustomTooltip />} />
-                    <Area 
-                      type="monotone" 
-                      dataKey="spending" 
-                      stroke="#FF7518" 
-                      fillOpacity={1} 
-                      fill="url(#spendingGradient)"
-                      strokeWidth={3}
-                      animationDuration={1500}
-                    />
-                    <Area 
-                      type="monotone" 
-                      dataKey="savings" 
-                      stroke="#138808" 
-                      fillOpacity={1} 
-                      fill="url(#savingsGradient)"
-                      strokeWidth={3}
-                      animationDuration={1500}
+                  <AreaChart
+                    data={analyticsData.monthlyTrends}
+                    margin={{
+                      top: 10,
+                      right: 30,
+                      left: 0,
+                      bottom: 0,
+                    }}
+                  >
+                    <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+                    <XAxis dataKey="month" className="text-sm" />
+                    <YAxis tickFormatter={(value) => formatCurrency(value)} className="text-sm" />
+                    <Tooltip formatter={(value: any, name: any) => [`${formatCurrency(value)}`, name]} />
+                    <Area type="monotone" dataKey="spending" stroke="#FF7518" fill="#FF7518" fillOpacity={0.3} name="Spending" />
+                    <Area type="monotone" dataKey="income" stroke="#138808" fill="#138808" fillOpacity={0.3} name="Income" />
+                    <Line type="monotone" dataKey="savings" stroke="#1E40AF" name="Savings" strokeWidth={2} dot={false} />
+                    <Legend 
+                      formatter={(value: string) => value === "spending" ? "Spending" : value === "income" ? "Income" : "Savings"}
+                      wrapperStyle={{ lineHeight: '24px', fontSize: '14px' }}
                     />
                   </AreaChart>
                 </ResponsiveContainer>
@@ -313,45 +306,55 @@ const Reports = () => {
 
               {activeChart === 'budget' && (
                 <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={analyticsData.budgetUtilization} layout="horizontal">
-                    <CartesianGrid strokeDasharray="3 3" className="opacity-30" />
-                    <XAxis type="number" domain={[0, 100]} />
-                    <YAxis dataKey="category" type="category" width={100} />
-                    <Tooltip 
-                      formatter={(value: number) => [`${value}%`, 'Utilization']}
-                      content={<CustomTooltip />}
-                    />
-                    <Bar 
-                      dataKey="percentage" 
-                      fill="#FF7518" 
-                      radius={[0, 4, 4, 0]}
-                      animationDuration={1200}
-                    />
+                  <BarChart
+                    data={analyticsData.budgetUtilization}
+                    margin={{
+                      top: 20,
+                      right: 30,
+                      left: 20,
+                      bottom: 5,
+                    }}
+                  >
+                    <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+                    <XAxis dataKey="category" className="text-sm" />
+                    <YAxis tickFormatter={(value) => formatCurrency(value)} className="text-sm" />
+                    <Tooltip formatter={(value: any, name: any, props: any) => {
+                      if (name === 'spent') {
+                        return [`${formatCurrency(value)} (Spent)`, `Budget: ${formatCurrency(props.payload.budget)}`, `Utilization: ${props.payload.percentage}%`];
+                      }
+                      return null;
+                    }} />
+                    <Bar dataKey="spent" fill="#8B5CF6" name="Spent" />
                   </BarChart>
                 </ResponsiveContainer>
               )}
 
               {activeChart === 'comparison' && (
                 <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={analyticsData.yearOverYear}>
-                    <CartesianGrid strokeDasharray="3 3" className="opacity-30" />
-                    <XAxis dataKey="category" />
-                    <YAxis />
-                    <Tooltip content={<CustomTooltip />} />
-                    <Bar 
-                      dataKey="current" 
-                      fill="#FF7518" 
-                      name="Current Year"
-                      radius={[4, 4, 0, 0]}
-                      animationDuration={1200}
+                  <BarChart
+                    data={analyticsData.yearOverYear}
+                    margin={{
+                      top: 20,
+                      right: 30,
+                      left: 20,
+                      bottom: 5,
+                    }}
+                  >
+                    <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+                    <XAxis dataKey="category" className="text-sm" />
+                    <YAxis tickFormatter={(value) => formatCurrency(value)} className="text-sm" />
+                    <Tooltip formatter={(value: any, name: any, props: any) => {
+                      if (name === 'current') {
+                        return [`${formatCurrency(value)} (Current Year)`, `Previous Year: ${formatCurrency(props.payload.previous)}`, `Growth: ${props.payload.growth}%`];
+                      }
+                      return null;
+                    }} />
+                    <Legend 
+                      formatter={(value: string) => value === "current" ? "Current Year Spending" : "Previous Year Spending"}
+                      wrapperStyle={{ lineHeight: '24px', fontSize: '14px' }}
                     />
-                    <Bar 
-                      dataKey="previous" 
-                      fill="#138808" 
-                      name="Previous Year"
-                      radius={[4, 4, 0, 0]}
-                      animationDuration={1200}
-                    />
+                    <Bar dataKey="previous" fill="#F59E0B" name="Previous Year" />
+                    <Bar dataKey="current" fill="#138808" name="Current Year" />
                   </BarChart>
                 </ResponsiveContainer>
               )}
