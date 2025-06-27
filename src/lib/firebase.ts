@@ -19,15 +19,15 @@ import { getFirestore, doc, setDoc, getDoc, updateDoc, serverTimestamp, connectF
 import { getAnalytics, Analytics, isSupported as isAnalyticsSupported } from 'firebase/analytics';
 import { getPerformance } from 'firebase/performance';
 
-// Firebase configuration with validation
+// Firebase configuration with your provided values
 const firebaseConfig = {
-  apiKey: import.meta.env.VITE_FIREBASE_API_KEY || '',
-  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN || '',
-  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID || '',
-  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET || '',
-  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID || '',
-  appId: import.meta.env.VITE_FIREBASE_APP_ID || '',
-  measurementId: import.meta.env.VITE_FIREBASE_MEASUREMENT_ID || ''
+  apiKey: "AIzaSyCRU3VwGbZWAZ4t_nCidntoOINMsprNHHU",
+  authDomain: "smart-spend-b72c5.firebaseapp.com",
+  projectId: "smart-spend-b72c5",
+  storageBucket: "smart-spend-b72c5.firebasestorage.app",
+  messagingSenderId: "568493010549",
+  appId: "1:568493010549:web:b405c1e544dcd44bfcd23c",
+  measurementId: "G-2MBJ1JKY0F"
 };
 
 // Validate Firebase configuration

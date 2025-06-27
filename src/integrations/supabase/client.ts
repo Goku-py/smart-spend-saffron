@@ -1,7 +1,8 @@
 import { createClient } from '@supabase/supabase-js'
 
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY
+// Use your provided Supabase configuration
+const supabaseUrl = 'https://rvlszwechlzgfbswwlnq.supabase.co'
+const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJ2bHN6d2VjaGx6Z2Zic3d3bG5xIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDg4NzAwNjUsImV4cCI6MjA2NDQ0NjA2NX0.5X0iSaGIq0haDnnR7cE-letveR04cESlheC-BqdkPxA'
 
 // Check if Supabase is properly configured
 export const isSupabaseConfigured = (): boolean => {
@@ -10,27 +11,18 @@ export const isSupabaseConfigured = (): boolean => {
     supabaseAnonKey !== 'your_supabase_anon_key')
 }
 
-// Create Supabase client only if properly configured
-export const supabase = isSupabaseConfigured() 
-  ? createClient(supabaseUrl, supabaseAnonKey, {
-      auth: {
-        autoRefreshToken: true,
-        persistSession: true,
-        detectSessionInUrl: true,
-        flowType: 'pkce'
-      }
-    })
-  : null
+// Create Supabase client with your configuration
+export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+  auth: {
+    autoRefreshToken: true,
+    persistSession: true,
+    detectSessionInUrl: true,
+    flowType: 'pkce'
+  }
+})
 
 // Enhanced authentication functions
 export const signUpWithEmail = async (email: string, password: string, fullName: string) => {
-  if (!supabase) {
-    return { 
-      data: null, 
-      error: { message: 'Supabase not configured. Please set up your environment variables.' }
-    }
-  }
-
   try {
     const { data, error } = await supabase.auth.signUp({
       email,
@@ -53,13 +45,6 @@ export const signUpWithEmail = async (email: string, password: string, fullName:
 }
 
 export const signInWithEmail = async (email: string, password: string) => {
-  if (!supabase) {
-    return { 
-      data: null, 
-      error: { message: 'Supabase not configured. Please set up your environment variables.' }
-    }
-  }
-
   try {
     const { data, error } = await supabase.auth.signInWithPassword({
       email,
@@ -76,13 +61,6 @@ export const signInWithEmail = async (email: string, password: string) => {
 }
 
 export const signInWithGoogle = async () => {
-  if (!supabase) {
-    return { 
-      data: null, 
-      error: { message: 'Supabase not configured. Please set up your environment variables.' }
-    }
-  }
-
   try {
     const { data, error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
@@ -101,10 +79,6 @@ export const signInWithGoogle = async () => {
 }
 
 export const signOut = async () => {
-  if (!supabase) {
-    return { error: null }
-  }
-
   try {
     const { error } = await supabase.auth.signOut()
     return { error }
@@ -114,13 +88,6 @@ export const signOut = async () => {
 }
 
 export const resetPassword = async (email: string) => {
-  if (!supabase) {
-    return { 
-      data: null, 
-      error: { message: 'Supabase not configured. Please set up your environment variables.' }
-    }
-  }
-
   try {
     const { data, error } = await supabase.auth.resetPasswordForEmail(email, {
       redirectTo: `${window.location.origin}/auth?mode=reset`
@@ -136,10 +103,6 @@ export const resetPassword = async (email: string) => {
 }
 
 export const getCurrentUser = async () => {
-  if (!supabase) {
-    return { data: { user: null }, error: null }
-  }
-
   try {
     const { data, error } = await supabase.auth.getUser()
     return { data, error }
@@ -152,10 +115,6 @@ export const getCurrentUser = async () => {
 }
 
 export const getCurrentSession = async () => {
-  if (!supabase) {
-    return { data: { session: null }, error: null }
-  }
-
   try {
     const { data, error } = await supabase.auth.getSession()
     return { data, error }
@@ -169,10 +128,6 @@ export const getCurrentSession = async () => {
 
 // Auth state change listener
 export const onAuthStateChange = (callback: (event: string, session: any) => void) => {
-  if (!supabase) {
-    return { data: { subscription: { unsubscribe: () => {} } } }
-  }
-
   return supabase.auth.onAuthStateChange(callback)
 }
 
