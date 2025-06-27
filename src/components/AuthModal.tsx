@@ -412,7 +412,7 @@ const AuthModal = ({ open, onClose, onSuccess }: AuthModalProps) => {
                     disabled={isLoading}
                   />
                   <Label htmlFor="gdpr-required" className="text-sm">
-                    I accept the <a href="/privacy" className="text-orange-600 dark:text-orange-400 hover:underline">Privacy Policy</a> and <a href="/terms" className="text-orange-600 dark:text-orange-400 hover:underline">Terms of Service</a> *
+                    I accept the <a href="/privacy" className="text-orange-600 dark:text-orange-400 hover:underline">Privacy Policy</a> and <a href="/terms" className=\"text-orange-600 dark:text-orange-400 hover:underline">Terms of Service</a> *
                   </Label>
                 </div>
 
