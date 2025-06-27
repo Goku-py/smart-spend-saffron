@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -5,14 +6,13 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
-import { Eye, EyeOff, Loader2, Shield, AlertTriangle, ExternalLink } from "lucide-react";
+import { Eye, EyeOff, Loader2, Shield } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { 
   signInWithEmail, 
   signUpWithEmail, 
   signInWithGoogle,
-  resetPassword, 
-  isSupabaseConfigured
+  resetPassword
 } from "../integrations/supabase/client";
 
 interface AuthModalProps {
@@ -227,10 +227,6 @@ const AuthModal = ({ open, onClose, onSuccess }: AuthModalProps) => {
     onClose();
   };
 
-  const openSetupGuide = () => {
-    window.open('/FIREBASE_SETUP_GUIDE.md', '_blank');
-  };
-
   return (
     <Dialog open={open} onOpenChange={handleClose}>
       <DialogContent className="sm:max-w-md max-h-[90vh] overflow-y-auto">
@@ -262,25 +258,8 @@ const AuthModal = ({ open, onClose, onSuccess }: AuthModalProps) => {
             </AlertDescription>
           </Alert>
 
-          {/* Configuration Status Alert */}
-          {!isSupabaseConfigured() && (
-            <Alert className="border-orange-200 bg-orange-50 dark:border-orange-800 dark:bg-orange-950">
-              <AlertTriangle className="h-4 w-4 text-orange-600 dark:text-orange-400" />
-              <AlertDescription className="text-orange-800 dark:text-orange-200">
-                <strong>Setup Required:</strong> Supabase authentication needs to be configured.
-                <Button 
-                  variant="link" 
-                  className="text-orange-600 dark:text-orange-400 p-0 h-auto ml-1"
-                  onClick={openSetupGuide}
-                >
-                  View Setup Guide <ExternalLink className="h-3 w-3 ml-1" />
-                </Button>
-              </AlertDescription>
-            </Alert>
-          )}
-
           {/* Google Sign In Button */}
-          {isSupabaseConfigured() && mode !== 'reset' && (
+          {mode !== 'reset' && (
             <Button
               onClick={handleGoogleAuth}
               disabled={isLoading}
@@ -302,7 +281,7 @@ const AuthModal = ({ open, onClose, onSuccess }: AuthModalProps) => {
           )}
 
           {/* Divider */}
-          {isSupabaseConfigured() && mode !== 'reset' && (
+          {mode !== 'reset' && (
             <div className="relative">
               <div className="absolute inset-0 flex items-center">
                 <span className="w-full border-t" />

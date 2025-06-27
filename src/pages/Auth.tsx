@@ -1,23 +1,17 @@
-import { useEffect, useState } from "react";
+
+import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft } from "lucide-react";
 import LanguageSelector from "@/components/LanguageSelector";
 import AuthModal from "@/components/AuthModal";
 import { useAuth } from "../hooks/useAuth";
-import { Alert, AlertDescription } from "@/components/ui/alert";
-import { AlertTriangle } from "lucide-react";
-import { isSupabaseConfigured } from "../integrations/supabase/client";
 
 const Auth = () => {
   const navigate = useNavigate();
   const { user, loading } = useAuth();
-  const [showConfigAlert, setShowConfigAlert] = useState(false);
 
-  useEffect(() => {
-    // Check if Supabase is configured
-    setShowConfigAlert(!isSupabaseConfigured());
-    
+  useEffect(() => {    
     // If user is already authenticated, redirect to dashboard
     if (!loading && user) {
       navigate('/dashboard', { replace: true });
@@ -52,23 +46,6 @@ const Auth = () => {
           </Button>
           <LanguageSelector />
         </div>
-
-        {/* Configuration Alert */}
-        {showConfigAlert && (
-          <Alert className="mb-6 border-orange-200 bg-orange-50">
-            <AlertTriangle className="h-4 w-4 text-orange-600" />
-            <AlertDescription className="text-orange-800">
-              <strong>Setup Required:</strong> Supabase authentication needs to be configured.
-              <Button 
-                variant="link" 
-                className="text-orange-600 p-0 h-auto ml-1"
-                onClick={() => window.open('/SUPABASE_SETUP_GUIDE.md', '_blank')}
-              >
-                View Setup Guide
-              </Button>
-            </AlertDescription>
-          </Alert>
-        )}
 
         {/* Auth Modal - Always open on this page */}
         <AuthModal 
