@@ -1,0 +1,563 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Smart Spend - Enhanced Design System with Dark Mode */
+
+@layer base {
+  :root {
+    --background: 0 0% 100%;
+    --foreground: 222.2 84% 4.9%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 222.2 84% 4.9%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 222.2 84% 4.9%;
+
+    --primary: 24 95% 53%; /* Saffron #FF7518 */
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 210 40% 96.1%;
+    --secondary-foreground: 222.2 47.4% 11.2%;
+
+    --muted: 210 40% 96.1%;
+    --muted-foreground: 215.4 16.3% 46.9%;
+
+    --accent: 24 95% 53%; /* Saffron accent */
+    --accent-foreground: 0 0% 100%;
+
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 210 40% 98%;
+
+    --border: 214.3 31.8% 91.4%;
+    --input: 214.3 31.8% 91.4%;
+    --ring: 24 95% 53%;
+
+    --radius: 0.75rem;
+
+    /* Indian themed colors */
+    --saffron: 24 95% 53%; /* #FF7518 */
+    --indian-green: 123 100% 25%; /* #138808 */
+    --indian-blue: 217 87% 33%; /* #1E40AF */
+    --gold: 45 100% 50%; /* #FFD700 */
+    
+    /* Festival gradients */
+    --diwali-gradient: linear-gradient(135deg, #FF7518 0%, #FFD700 50%, #FF7518 100%);
+    --prosperity-gradient: linear-gradient(135deg, #138808 0%, #32CD32 100%);
+    --savings-gradient: linear-gradient(135deg, #1E40AF 0%, #60A5FA 100%);
+
+    /* Spacing system */
+    --space-xs: 0.25rem;
+    --space-sm: 0.5rem;
+    --space-md: 1rem;
+    --space-lg: 1.5rem;
+    --space-xl: 2rem;
+    --space-2xl: 3rem;
+  }
+
+  .dark {
+    --background: 222.2 84% 4.9%;
+    --foreground: 210 40% 98%;
+    
+    --card: 222.2 84% 4.9%;
+    --card-foreground: 210 40% 98%;
+    
+    --popover: 222.2 84% 4.9%;
+    --popover-foreground: 210 40% 98%;
+    
+    --primary: 24 95% 53%;
+    --primary-foreground: 0 0% 100%;
+    
+    --secondary: 217.2 32.6% 17.5%;
+    --secondary-foreground: 210 40% 98%;
+    
+    --muted: 217.2 32.6% 17.5%;
+    --muted-foreground: 215 20.2% 65.1%;
+    
+    --accent: 217.2 32.6% 17.5%;
+    --accent-foreground: 210 40% 98%;
+    
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 210 40% 98%;
+    
+    --border: 217.2 32.6% 17.5%;
+    --input: 217.2 32.6% 17.5%;
+    --ring: 212.7 26.8% 83.9%;
+  }
+
+  /* Dark mode specific overrides */
+  .dark {
+    /* Background gradients for dark mode */
+    --diwali-gradient: linear-gradient(135deg, #FF7518 0%, #FFD700 50%, #FF7518 100%);
+    --prosperity-gradient: linear-gradient(135deg, #138808 0%, #32CD32 100%);
+    --savings-gradient: linear-gradient(135deg, #1E40AF 0%, #60A5FA 100%);
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+    font-family: 'Inter', sans-serif;
+    line-height: 1.6;
+    transition: background-color 0.3s ease, color 0.3s ease;
+  }
+
+  /* Improved focus indicators for accessibility */
+  *:focus {
+    outline: 2px solid hsl(var(--ring));
+    outline-offset: 2px;
+  }
+
+  /* Better text contrast for both themes */
+  .text-gray-500 {
+    @apply text-muted-foreground;
+  }
+
+  .text-gray-600 {
+    @apply text-muted-foreground;
+  }
+
+  /* Dark mode specific styles */
+  .dark .bg-gradient-to-br {
+    background: linear-gradient(to bottom right, hsl(var(--background)), hsl(var(--muted)));
+  }
+
+  .dark .card-indian {
+    @apply bg-card border-border;
+    background: linear-gradient(135deg, rgba(255, 117, 24, 0.05) 0%, rgba(255, 215, 0, 0.05) 100%);
+  }
+}
+
+@layer components {
+  /* Enhanced Animation System */
+  @keyframes fade-in {
+    from { 
+      opacity: 0; 
+      transform: translateY(10px); 
+    }
+    to { 
+      opacity: 1; 
+      transform: translateY(0); 
+    }
+  }
+
+  @keyframes slide-up {
+    from { 
+      opacity: 0; 
+      transform: translateY(30px); 
+    }
+    to { 
+      opacity: 1; 
+      transform: translateY(0); 
+    }
+  }
+
+  @keyframes slide-in-left {
+    from { 
+      opacity: 0; 
+      transform: translateX(-30px); 
+    }
+    to { 
+      opacity: 1; 
+      transform: translateX(0); 
+    }
+  }
+
+  @keyframes slide-in-right {
+    from { 
+      opacity: 0; 
+      transform: translateX(30px); 
+    }
+    to { 
+      opacity: 1; 
+      transform: translateX(0); 
+    }
+  }
+
+  @keyframes scale-in {
+    from { 
+      opacity: 0; 
+      transform: scale(0.95); 
+    }
+    to { 
+      opacity: 1; 
+      transform: scale(1); 
+    }
+  }
+
+  @keyframes bounce-in {
+    0% { 
+      opacity: 0; 
+      transform: scale(0.3); 
+    }
+    50% { 
+      opacity: 1; 
+      transform: scale(1.05); 
+    }
+    70% { 
+      transform: scale(0.9); 
+    }
+    100% { 
+      opacity: 1; 
+      transform: scale(1); 
+    }
+  }
+
+  @keyframes pulse-glow {
+    0%, 100% { 
+      box-shadow: 0 0 5px rgba(255, 117, 24, 0.5); 
+    }
+    50% { 
+      box-shadow: 0 0 20px rgba(255, 117, 24, 0.8); 
+    }
+  }
+
+  @keyframes shimmer {
+    0% { 
+      background-position: -200px 0; 
+    }
+    100% { 
+      background-position: calc(200px + 100%) 0; 
+    }
+  }
+
+  /* Theme Toggle Animation */
+  @keyframes theme-switch {
+    0% { 
+      opacity: 0.8; 
+      transform: rotate(0deg); 
+    }
+    50% { 
+      opacity: 0.5; 
+      transform: rotate(180deg); 
+    }
+    100% { 
+      opacity: 1; 
+      transform: rotate(360deg); 
+    }
+  }
+
+  /* Animation Classes */
+  .animate-fade-in {
+    animation: fade-in 0.6s ease-out forwards;
+  }
+
+  .animate-slide-up {
+    animation: slide-up 0.8s ease-out forwards;
+  }
+
+  .animate-slide-in-left {
+    animation: slide-in-left 0.6s ease-out forwards;
+  }
+
+  .animate-slide-in-right {
+    animation: slide-in-right 0.6s ease-out forwards;
+  }
+
+  .animate-scale-in {
+    animation: scale-in 0.4s ease-out forwards;
+  }
+
+  .animate-bounce-in {
+    animation: bounce-in 0.6s ease-out forwards;
+  }
+
+  .animate-pulse-glow {
+    animation: pulse-glow 2s ease-in-out infinite;
+  }
+
+  .animate-shimmer {
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.4), transparent);
+    background-size: 200px 100%;
+    animation: shimmer 1.5s infinite;
+  }
+
+  /* Theme Toggle Button Styles */
+  .theme-toggle-button {
+    position: relative;
+    overflow: hidden;
+    transition: all 0.3s ease;
+  }
+
+  .theme-toggle-button:hover {
+    transform: scale(1.05);
+  }
+
+  .theme-toggle-button:active {
+    transform: scale(0.95);
+  }
+
+  .theme-toggle-button svg {
+    transition: all 0.3s ease;
+  }
+
+  .theme-toggle-button:hover svg {
+    animation: theme-switch 0.6s ease-in-out;
+  }
+
+  /* Standardized spacing system */
+  .space-xs { margin: var(--space-xs); }
+  .space-sm { margin: var(--space-sm); }
+  .space-md { margin: var(--space-md); }
+  .space-lg { margin: var(--space-lg); }
+  .space-xl { margin: var(--space-xl); }
+  .space-2xl { margin: var(--space-2xl); }
+
+  /* Touch-friendly button sizes */
+  .btn-touch {
+    min-height: 44px;
+    min-width: 44px;
+    padding: 12px 16px;
+  }
+
+  /* Responsive table wrapper */
+  .table-responsive {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* Enhanced Indian themed components */
+  .diwali-pattern {
+    background-image: radial-gradient(circle at 25% 25%, #FF7518 2px, transparent 2px),
+                      radial-gradient(circle at 75% 75%, #FFD700 1px, transparent 1px);
+    background-size: 20px 20px;
+  }
+  
+  .festive-border {
+    border-image: linear-gradient(90deg, #FF7518, #FFD700, #FF7518) 1;
+  }
+  
+  .currency-input {
+    @apply pl-8 relative;
+  }
+  
+  .currency-symbol {
+    @apply absolute left-3 top-1/2 transform -translate-y-1/2 text-primary font-semibold;
+  }
+  
+  .progress-bar-indian {
+    background: linear-gradient(90deg, #138808 0%, #32CD32 100%);
+  }
+  
+  .card-indian {
+    @apply bg-card rounded-xl shadow-lg border border-border;
+    background: linear-gradient(135deg, rgba(255, 117, 24, 0.02) 0%, rgba(255, 215, 0, 0.02) 100%);
+    transition: all 0.3s ease;
+  }
+  
+  .card-indian:hover {
+    @apply shadow-xl;
+    transform: translateY(-2px);
+  }
+  
+  .btn-primary-indian {
+    background: var(--diwali-gradient);
+    @apply text-white font-semibold py-3 px-6 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300;
+  }
+  
+  .btn-secondary-indian {
+    background: var(--prosperity-gradient);
+    @apply text-white font-semibold py-2 px-4 rounded-lg shadow-md hover:shadow-lg transition-all duration-300;
+  }
+
+  /* Enhanced loading states */
+  .loading-skeleton {
+    @apply animate-pulse bg-muted rounded;
+  }
+
+  /* Better error states */
+  .error-state {
+    @apply text-destructive-foreground bg-destructive/10 border border-destructive/20 rounded-lg p-4;
+  }
+
+  /* Success states */
+  .success-state {
+    @apply text-green-600 bg-green-50 border border-green-200 rounded-lg p-4;
+    
+    .dark & {
+      @apply text-green-400 bg-green-950 border-green-800;
+    }
+  }
+
+  /* Theme transition animations */
+  .theme-transition {
+    transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
+  }
+
+  /* Enhanced hover effects */
+  .hover-lift {
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+  }
+
+  .hover-lift:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+  }
+
+  .dark .hover-lift:hover {
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+  }
+
+  /* Gradient text effects */
+  .gradient-text {
+    background: linear-gradient(135deg, #FF7518 0%, #FFD700 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  /* Enhanced focus states */
+  .focus-ring {
+    @apply focus:outline-none focus:ring-2 focus:ring-orange-500 focus:ring-offset-2;
+  }
+
+  .dark .focus-ring {
+    @apply focus:ring-offset-gray-800;
+  }
+
+  /* Data visualization enhancements */
+  .chart-container {
+    @apply relative overflow-hidden rounded-lg;
+  }
+
+  .chart-tooltip {
+    @apply bg-background border border-border rounded-lg p-3 shadow-lg;
+  }
+
+  /* Mobile-specific enhancements */
+  @media (max-width: 768px) {
+    .mobile-optimized {
+      @apply text-sm p-3;
+    }
+    
+    .mobile-stack {
+      @apply flex-col space-y-2 space-x-0;
+    }
+  }
+}
+
+/* Custom animations for Indian feel */
+@keyframes diya-glow {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.7; }
+}
+
+@keyframes rupee-bounce {
+  0%, 20%, 50%, 80%, 100% { transform: translateY(0); }
+  40% { transform: translateY(-10px); }
+  60% { transform: translateY(-5px); }
+}
+
+.diya-animation {
+  animation: diya-glow 2s ease-in-out infinite;
+}
+
+.rupee-animation {
+  animation: rupee-bounce 2s ease-in-out infinite;
+}
+
+/* Accessibility improvements */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+  .card-indian {
+    border: 2px solid hsl(var(--border));
+  }
+  
+  .btn-primary-indian {
+    border: 2px solid hsl(var(--border));
+  }
+}
+
+/* Print styles */
+@media print {
+  .no-print {
+    display: none !important;
+  }
+  
+  body {
+    background: white !important;
+    color: black !important;
+  }
+  
+  .dark {
+    background: white !important;
+    color: black !important;
+  }
+}
+
+/* Smooth scrolling */
+html {
+  scroll-behavior: smooth;
+}
+
+/* Enhanced scrollbar styling */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: hsl(var(--muted));
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: hsl(var(--muted-foreground));
+  border-radius: 4px;
+  transition: background 0.2s ease;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: hsl(var(--primary));
+}
+
+/* Dark mode scrollbar */
+.dark ::-webkit-scrollbar-track {
+  background: hsl(var(--muted));
+}
+
+.dark ::-webkit-scrollbar-thumb {
+  background: hsl(var(--muted-foreground));
+}
+
+.dark ::-webkit-scrollbar-thumb:hover {
+  background: hsl(var(--primary));
+}
+
+/* Enhanced selection styling */
+::selection {
+  background: hsl(var(--primary) / 0.2);
+  color: hsl(var(--primary-foreground));
+}
+
+.dark ::selection {
+  background: hsl(var(--primary) / 0.3);
+}
+
+/* Loading spinner enhancement */
+.spinner {
+  border: 2px solid hsl(var(--muted));
+  border-top: 2px solid hsl(var(--primary));
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
