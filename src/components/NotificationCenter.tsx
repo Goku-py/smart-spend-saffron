@@ -338,7 +338,7 @@ const NotificationCenter = ({ className }: NotificationCenterProps) => {
                                   <div className="w-2 h-2 bg-orange-500 rounded-full flex-shrink-0" />
                                 )}
                                 {notification.isUrgent && (
-                                  <Badge variant="destructive\" className="text-xs">
+                                  <Badge variant="destructive" className="text-xs">
                                     Urgent
                                   </Badge>
                                 )}

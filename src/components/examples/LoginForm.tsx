@@ -1,6 +1,10 @@
+
 import React from 'react';
 import { z } from 'zod';
-import { Form, FormInput } from '@/components/ui/form';
+import { Form } from '@/components/ui/form';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Button } from '@/components/ui/button';
 import { EnvelopeIcon, LockClosedIcon } from '@heroicons/react/24/outline';
 
 const loginSchema = z.object({
@@ -24,7 +28,7 @@ export const LoginForm: React.FC<LoginFormProps> = ({ onSubmit, isLoading }) => 
   return (
     <Form
       initialValues={initialValues}
-      validationSchema={loginSchema}
+      schema={loginSchema}
       onSubmit={onSubmit}
       className="space-y-6"
     >
@@ -37,38 +41,52 @@ export const LoginForm: React.FC<LoginFormProps> = ({ onSubmit, isLoading }) => 
         isSubmitting
       }) => (
         <>
-          <FormInput
-            label="Email"
-            type="email"
-            name="email"
-            value={values.email}
-            onChange={handleChange('email')}
-            onBlur={handleBlur('email')}
-            error={errors.email}
-            touched={touched.email}
-            placeholder="Enter your email"
-            leftIcon={<EnvelopeIcon className="h-5 w-5 text-gray-400" />}
-            disabled={isSubmitting || isLoading}
-            required
-          />
+          <div className="space-y-2">
+            <Label htmlFor="email">Email</Label>
+            <div className="relative">
+              <EnvelopeIcon className="absolute left-3 top-1/2 h-5 w-5 text-gray-400 -translate-y-1/2" />
+              <Input
+                id="email"
+                type="email"
+                name="email"
+                value={values.email}
+                onChange={handleChange}
+                onBlur={handleBlur}
+                placeholder="Enter your email"
+                className="pl-10"
+                disabled={isSubmitting || isLoading}
+                required
+              />
+            </div>
+            {errors.email && touched.email && (
+              <p className="text-sm text-red-600">{errors.email}</p>
+            )}
+          </div>
 
-          <FormInput
-            label="Password"
-            type="password"
-            name="password"
-            value={values.password}
-            onChange={handleChange('password')}
-            onBlur={handleBlur('password')}
-            error={errors.password}
-            touched={touched.password}
-            placeholder="Enter your password"
-            leftIcon={<LockClosedIcon className="h-5 w-5 text-gray-400" />}
-            disabled={isSubmitting || isLoading}
-            required
-          />
+          <div className="space-y-2">
+            <Label htmlFor="password">Password</Label>
+            <div className="relative">
+              <LockClosedIcon className="absolute left-3 top-1/2 h-5 w-5 text-gray-400 -translate-y-1/2" />
+              <Input
+                id="password"
+                type="password"
+                name="password"
+                value={values.password}
+                onChange={handleChange}
+                onBlur={handleBlur}
+                placeholder="Enter your password"
+                className="pl-10"
+                disabled={isSubmitting || isLoading}
+                required
+              />
+            </div>
+            {errors.password && touched.password && (
+              <p className="text-sm text-red-600">{errors.password}</p>
+            )}
+          </div>
 
           <div>
-            <button
+            <Button
               type="submit"
               disabled={isSubmitting || isLoading}
               className="
@@ -81,7 +99,7 @@ export const LoginForm: React.FC<LoginFormProps> = ({ onSubmit, isLoading }) => 
               "
             >
               {isSubmitting || isLoading ? 'Signing in...' : 'Sign in'}
-            </button>
+            </Button>
           </div>
         </>
       )}

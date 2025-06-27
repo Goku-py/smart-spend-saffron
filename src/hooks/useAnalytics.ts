@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { useAuth } from './useAuth';
 
@@ -21,47 +22,53 @@ interface AnalyticsData {
   savingsThisMonth: number;
 }
 
+interface ExpenseData {
+  amount: number;
+  category: string;
+  date: string;
+}
+
 export const useAnalytics = (timeRange: string = 'month') => {
   const { user } = useAuth();
   const [analyticsData, setAnalyticsData] = useState<AnalyticsData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    const fetchAnalytics = async () => {
-      if (!user) {
+  const fetchAnalytics = async () => {
+    if (!user) {
+      setLoading(false);
+      return;
+    }
+
+    try {
+      setLoading(true);
+      setError(null);
+
+      // Get real expenses from localStorage (demo mode) or database
+      const expenses = getStoredExpenses();
+      
+      if (!expenses || expenses.length === 0) {
+        // Use fallback mock data if no real expenses
+        setAnalyticsData(getMockAnalytics());
         setLoading(false);
         return;
       }
 
-      try {
-        setLoading(true);
-        setError(null);
+      // Process real expense data
+      const analytics = processExpenseData(expenses, timeRange);
+      setAnalyticsData(analytics);
 
-        // Get real expenses from localStorage (demo mode) or database
-        const expenses = getStoredExpenses();
-        
-        if (!expenses || expenses.length === 0) {
-          // Use fallback mock data if no real expenses
-          setAnalyticsData(getMockAnalytics());
-          setLoading(false);
-          return;
-        }
+    } catch (err) {
+      console.error('Error fetching analytics:', err);
+      setError('Failed to load analytics data');
+      // Fallback to mock data on error
+      setAnalyticsData(getMockAnalytics());
+    } finally {
+      setLoading(false);
+    }
+  };
 
-        // Process real expense data
-        const analytics = processExpenseData(expenses, timeRange);
-        setAnalyticsData(analytics);
-
-      } catch (err) {
-        console.error('Error fetching analytics:', err);
-        setError('Failed to load analytics data');
-        // Fallback to mock data on error
-        setAnalyticsData(getMockAnalytics());
-      } finally {
-        setLoading(false);
-      }
-    };
-
+  useEffect(() => {
     fetchAnalytics();
   }, [user, timeRange]);
 
@@ -83,7 +90,7 @@ export const useAnalytics = (timeRange: string = 'month') => {
 };
 
 // Get expenses from localStorage (demo mode)
-const getStoredExpenses = () => {
+const getStoredExpenses = (): ExpenseData[] => {
   try {
     const stored = localStorage.getItem('smartspend_expenses');
     return stored ? JSON.parse(stored) : [];
@@ -94,7 +101,7 @@ const getStoredExpenses = () => {
 };
 
 // Process real expense data into analytics
-const processExpenseData = (expenses: any[], timeRange: string): AnalyticsData => {
+const processExpenseData = (expenses: ExpenseData[], timeRange: string): AnalyticsData => {
   // Filter expenses based on time range
   const filteredExpenses = filterExpensesByTimeRange(expenses, timeRange);
   
@@ -104,7 +111,8 @@ const processExpenseData = (expenses: any[], timeRange: string): AnalyticsData =
 
   // Group by category
   const categoryTotals = filteredExpenses.reduce((acc, expense) => {
-    acc[expense.category] = (acc[expense.category] || 0) + expense.amount;
+    const amount = Number(expense.amount) || 0;
+    acc[expense.category] = (acc[expense.category] || 0) + amount;
     return acc;
   }, {} as Record<string, number>);
 
@@ -126,7 +134,7 @@ const processExpenseData = (expenses: any[], timeRange: string): AnalyticsData =
   
   // Calculate savings (compare with previous period)
   const previousPeriodExpenses = getPreviousPeriodExpenses(expenses, timeRange);
-  const previousTotal = previousPeriodExpenses.reduce((sum, exp) => sum + exp.amount, 0);
+  const previousTotal = previousPeriodExpenses.reduce((sum, exp) => sum + Number(exp.amount), 0);
   const savingsThisMonth = Math.max(0, previousTotal - totalSpending);
 
   return {
@@ -140,7 +148,7 @@ const processExpenseData = (expenses: any[], timeRange: string): AnalyticsData =
 };
 
 // Filter expenses by time range
-const filterExpensesByTimeRange = (expenses: any[], timeRange: string) => {
+const filterExpensesByTimeRange = (expenses: ExpenseData[], timeRange: string): ExpenseData[] => {
   const now = new Date();
   const startDate = new Date();
 
@@ -169,7 +177,7 @@ const filterExpensesByTimeRange = (expenses: any[], timeRange: string) => {
 };
 
 // Generate monthly trends from expenses
-const generateMonthlyTrends = (expenses: any[]): TrendData[] => {
+const generateMonthlyTrends = (expenses: ExpenseData[]): TrendData[] => {
   const monthlyTotals = expenses.reduce((acc, expense) => {
     const date = new Date(expense.date);
     const monthKey = `${date.getFullYear()}-${date.getMonth()}`;
@@ -178,7 +186,7 @@ const generateMonthlyTrends = (expenses: any[]): TrendData[] => {
     if (!acc[monthKey]) {
       acc[monthKey] = { month: monthName, spending: 0 };
     }
-    acc[monthKey].spending += expense.amount;
+    acc[monthKey].spending += Number(expense.amount) || 0;
     
     return acc;
   }, {} as Record<string, TrendData>);
@@ -189,7 +197,7 @@ const generateMonthlyTrends = (expenses: any[]): TrendData[] => {
 };
 
 // Get previous period expenses for comparison
-const getPreviousPeriodExpenses = (expenses: any[], timeRange: string) => {
+const getPreviousPeriodExpenses = (expenses: ExpenseData[], timeRange: string): ExpenseData[] => {
   const now = new Date();
   let startDate = new Date();
   let endDate = new Date();
