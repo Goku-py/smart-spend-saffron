@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react';
-import { User as FirebaseUser } from 'firebase/auth';
-import { auth, onAuthStateChange, isFirebaseConfigured } from '../lib/firebase';
+import { supabase, isSupabaseConfigured, onAuthStateChange } from '../integrations/supabase/client';
 
 export interface AuthUser {
   id: string;
@@ -36,9 +35,9 @@ export const useAuth = () => {
 
     const initializeAuth = async () => {
       try {
-        // Check if Firebase is configured
-        if (!isFirebaseConfigured()) {
-          console.log('Firebase not configured, checking for demo user');
+        // Check if Supabase is configured
+        if (!isSupabaseConfigured()) {
+          console.log('Supabase not configured, checking for demo user');
           // Check for demo user in localStorage
           try {
             const demoUserJson = localStorage.getItem('demo_user');
@@ -74,16 +73,55 @@ export const useAuth = () => {
           return;
         }
 
+        // Get initial session
+        const { data: { session }, error: sessionError } = await supabase!.auth.getSession();
+        
+        if (sessionError) {
+          console.error('Session error:', sessionError);
+          setAuthStateIfMounted({
+            user: null,
+            loading: false,
+            error: sessionError.message
+          });
+          return;
+        }
+
+        // Set initial auth state
+        if (session?.user) {
+          const authUser: AuthUser = {
+            id: session.user.id,
+            email: session.user.email || '',
+            displayName: session.user.user_metadata?.full_name || session.user.user_metadata?.display_name || session.user.email?.split('@')[0],
+            photoURL: session.user.user_metadata?.avatar_url,
+            emailVerified: session.user.email_confirmed_at ? true : false,
+            provider: session.user.app_metadata?.provider === 'google' ? 'google' : 'email'
+          };
+
+          setAuthStateIfMounted({
+            user: authUser,
+            loading: false,
+            error: null
+          });
+        } else {
+          setAuthStateIfMounted({
+            user: null,
+            loading: false,
+            error: null
+          });
+        }
+
         // Set up auth state listener
-        unsubscribe = onAuthStateChange(async (firebaseUser) => {
-          if (firebaseUser) {
+        const { data: { subscription } } = onAuthStateChange((event, session) => {
+          console.log('Auth state changed:', event, session);
+          
+          if (session?.user) {
             const authUser: AuthUser = {
-              id: firebaseUser.uid,
-              email: firebaseUser.email || '',
-              displayName: firebaseUser.displayName || undefined,
-              photoURL: firebaseUser.photoURL || undefined,
-              emailVerified: firebaseUser.emailVerified,
-              provider: firebaseUser.providerData[0]?.providerId === 'google.com' ? 'google' : 'email'
+              id: session.user.id,
+              email: session.user.email || '',
+              displayName: session.user.user_metadata?.full_name || session.user.user_metadata?.display_name || session.user.email?.split('@')[0],
+              photoURL: session.user.user_metadata?.avatar_url,
+              emailVerified: session.user.email_confirmed_at ? true : false,
+              provider: session.user.app_metadata?.provider === 'google' ? 'google' : 'email'
             };
 
             setAuthStateIfMounted({
@@ -99,6 +137,9 @@ export const useAuth = () => {
             });
           }
         });
+
+        unsubscribe = subscription.unsubscribe;
+
       } catch (error) {
         console.error('Auth initialization error:', error);
         setAuthStateIfMounted({

@@ -3,8 +3,7 @@ import { Button } from '@/components/ui/button';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { useToast } from '@/hooks/use-toast';
 import { LogOut, Loader2, Shield } from 'lucide-react';
-import { logOut } from '../lib/firebase';
-import { supabase } from '../integrations/supabase/client';
+import { signOut } from '../integrations/supabase/client';
 
 interface SecureLogoutProps {
   onLogout?: () => void;
@@ -21,22 +20,18 @@ const SecureLogout = ({ onLogout, variant = 'outline', size = 'default', classNa
     setIsLoading(true);
     
     try {
-      // Step 1: Sign out from Firebase (handles session cleanup)
-      await logOut();
+      // Sign out from Supabase
+      const { error } = await signOut();
       
-      // Step 2: Sign out from Supabase
-      try {
-        await supabase.auth.signOut();
-      } catch (supabaseError) {
-        console.warn('Supabase logout warning:', supabaseError);
-        // Don't fail the logout if Supabase fails
+      if (error) {
+        throw new Error(error.message);
       }
       
-      // Step 3: Clear all local storage
+      // Clear all local storage
       localStorage.clear();
       sessionStorage.clear();
       
-      // Step 4: Clear all cookies
+      // Clear all cookies
       document.cookie.split(";").forEach((cookie) => {
         const eqPos = cookie.indexOf("=");
         const name = eqPos > -1 ? cookie.substr(0, eqPos) : cookie;
@@ -44,7 +39,7 @@ const SecureLogout = ({ onLogout, variant = 'outline', size = 'default', classNa
         document.cookie = `${name}=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/`;
       });
       
-      // Step 5: Clear any cached data
+      // Clear any cached data
       if ('caches' in window) {
         const cacheNames = await caches.keys();
         await Promise.all(
@@ -52,38 +47,17 @@ const SecureLogout = ({ onLogout, variant = 'outline', size = 'default', classNa
         );
       }
       
-      // Step 6: Clear IndexedDB (if used)
-      if ('indexedDB' in window) {
-        try {
-          // Clear any IndexedDB databases that might contain user data
-          const databases = await indexedDB.databases();
-          await Promise.all(
-            databases.map(db => {
-              if (db.name) {
-                const deleteReq = indexedDB.deleteDatabase(db.name);
-                return new Promise((resolve, reject) => {
-                  deleteReq.onsuccess = () => resolve(undefined);
-                  deleteReq.onerror = () => reject(deleteReq.error);
-                });
-              }
-            })
-          );
-        } catch (error) {
-          console.warn('IndexedDB cleanup warning:', error);
-        }
-      }
-      
       toast({
         title: "Logged Out Successfully",
         description: "You have been securely logged out. All session data has been cleared.",
       });
       
-      // Step 7: Call onLogout callback if provided
+      // Call onLogout callback if provided
       if (onLogout) {
         onLogout();
       }
       
-      // Step 8: Redirect to home page
+      // Redirect to home page
       window.location.href = '/';
       
     } catch (error) {

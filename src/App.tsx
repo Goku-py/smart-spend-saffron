@@ -24,11 +24,7 @@ import TermsOfService from "./pages/TermsOfService";
 import HelpCenter from "./pages/HelpCenter";
 import { useAuth } from "./hooks/useAuth";
 import { useSecureAuth } from "./hooks/useSecureAuth";
-import { initializeFirebase } from "./lib/firebase";
 import './i18n';
-
-// Initialize Firebase
-initializeFirebase().catch(console.error);
 
 const queryClient = new QueryClient({
   defaultOptions: {
